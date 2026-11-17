@@ -56,7 +56,7 @@ public class AppUpdatesPlugin extends Plugin {
             if (!UpdatePolicy.allowedDownload(address)) throw new Exception("Origem de atualização não autorizada.");
             HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
             connection.setConnectTimeout(15000); connection.setReadTimeout(30000); connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("User-Agent", "Oluni-Android");
+            connection.setRequestProperty("User-Agent", "OLUNE-Android");
             int status = connection.getResponseCode();
             if (status >= 300 && status < 400) {
                 String location = connection.getHeaderField("Location");
@@ -106,7 +106,7 @@ public class AppUpdatesPlugin extends Plugin {
     private File download(JSONObject metadata) throws Exception {
         File folder = new File(getContext().getCacheDir(), "updates");
         if (!folder.exists() && !folder.mkdirs()) throw new Exception("Sem espaço para baixar a atualização.");
-        File target = new File(folder, "Oluni-" + metadata.getLong("versionCode") + ".apk");
+        File target = new File(folder, "OLUNE-" + metadata.getLong("versionCode") + ".apk");
         if (target.isFile() && target.length() == metadata.getLong("size") && fileHash(target).equalsIgnoreCase(metadata.getString("sha256"))) return target;
         HttpURLConnection connection = open(metadata.getString("url"));
         try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(target)) {

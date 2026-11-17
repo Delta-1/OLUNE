@@ -1,4 +1,4 @@
-name: Gerar aplicativo Android
+name: Gerar OLUNE para Android
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: oluni-android
+  group: olune-android
   cancel-in-progress: true
 
 jobs:
@@ -61,9 +61,9 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/oluni-signing.jks"
-            chmod 600 "$RUNNER_TEMP/oluni-signing.jks"
-            echo "PN_SIGNING_STORE=$RUNNER_TEMP/oluni-signing.jks" >> "$GITHUB_ENV"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/olune-signing.jks"
+            chmod 600 "$RUNNER_TEMP/olune-signing.jks"
+            echo "PN_SIGNING_STORE=$RUNNER_TEMP/olune-signing.jks" >> "$GITHUB_ENV"
             echo "PN_CHANNEL=android-latest" >> "$GITHUB_ENV"
           else
             echo "PN_CHANNEL=android-preview" >> "$GITHUB_ENV"
@@ -83,23 +83,26 @@ jobs:
           fi
       - name: Remover chave do ambiente de compilação
         if: always()
-        run: rm -f -- "$RUNNER_TEMP/oluni-signing.jks"
+        run: rm -f -- "$RUNNER_TEMP/olune-signing.jks"
       - name: Preparar APK e metadados verificáveis
         run: |
           if [[ "$PN_CHANNEL" == "android-latest" ]]; then
-            cp android/app/build/outputs/apk/release/app-release.apk Oluni.apk
+            cp android/app/build/outputs/apk/release/app-release.apk OLUNE.apk
             APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
-            CERTIFICATE="$("$APKSIGNER" verify --print-certs Oluni.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-            node scripts/update-manifest.mjs Oluni.apk "$PN_VERSION_CODE" "$CERTIFICATE" "$GITHUB_SHA"
+            CERTIFICATE="$("$APKSIGNER" verify --print-certs OLUNE.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+            node scripts/update-manifest.mjs OLUNE.apk "$PN_VERSION_CODE" "$CERTIFICATE" "$GITHUB_SHA"
           else
-            cp android/app/build/outputs/apk/debug/app-debug.apk Oluni.apk
+            cp android/app/build/outputs/apk/debug/app-debug.apk OLUNE.apk
           fi
+      - name: Manter alias de atualização dos aplicativos instalados
+        run: cp OLUNE.apk Oluni.apk
       - name: Guardar artefato da compilação
         uses: actions/upload-artifact@v4
         with:
-          name: Oluni-Android-${{ github.run_number }}
+          name: OLUNE-Android-${{ github.run_number }}
           path: |
-            mobile/Oluni*.apk
+            mobile/OLUNE*.apk
+            mobile/Oluni.apk
             mobile/update.json
           if-no-files-found: error
       - name: Publicar versão para download
@@ -109,18 +112,18 @@ jobs:
           if [[ "$PN_CHANNEL" == "android-latest" ]]; then
             VERSION="$(node -p 'require("./package.json").version')"
             TAG="android-v$PN_VERSION_CODE"
-            printf 'Aplicativo Oluni %s, compilação %s.\nOrigem: %s\n' "$VERSION" "$PN_VERSION_CODE" "$GITHUB_SHA" > release-notes.txt
-            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "Oluni $VERSION ($PN_VERSION_CODE)" --notes-file release-notes.txt
-            gh release upload "$TAG" Oluni.apk update.json --clobber
-            gh release view android-latest >/dev/null 2>&1 || gh release create android-latest --target "$GITHUB_SHA" --title "Oluni Android" --notes-file release-notes.txt
-            gh release edit android-latest --title "Oluni Android" --prerelease=false --notes-file release-notes.txt
-            gh release upload android-latest Oluni.apk --clobber
+            printf 'Aplicativo OLUNE %s, compilação %s.\nOrigem: %s\n' "$VERSION" "$PN_VERSION_CODE" "$GITHUB_SHA" > release-notes.txt
+            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "OLUNE $VERSION ($PN_VERSION_CODE)" --notes-file release-notes.txt
+            gh release upload "$TAG" OLUNE.apk Oluni.apk update.json --clobber
+            gh release view android-latest >/dev/null 2>&1 || gh release create android-latest --target "$GITHUB_SHA" --title "OLUNE Android" --notes-file release-notes.txt
+            gh release edit android-latest --title "OLUNE Android" --prerelease=false --notes-file release-notes.txt
+            gh release upload android-latest OLUNE.apk Oluni.apk --clobber
             gh release upload android-latest update.json --clobber
           else
-            printf 'Aplicativo Oluni para Android. Origem: %s. Canal com assinatura temporária; assinatura permanente pendente para o atualizador de produção.\n' "$GITHUB_SHA" > release-notes.txt
-            gh release view android-preview >/dev/null 2>&1 || gh release create android-preview --prerelease --target "$GITHUB_SHA" --title "Oluni Android" --notes-file release-notes.txt
-            gh release edit android-preview --title "Oluni Android" --notes-file release-notes.txt
-            gh release upload android-preview Oluni.apk --clobber
+            printf 'Aplicativo OLUNE para Android. Origem: %s. Canal com assinatura temporária; assinatura permanente pendente para o atualizador de produção.\n' "$GITHUB_SHA" > release-notes.txt
+            gh release view android-preview >/dev/null 2>&1 || gh release create android-preview --prerelease --target "$GITHUB_SHA" --title "OLUNE Android" --notes-file release-notes.txt
+            gh release edit android-preview --title "OLUNE Android" --notes-file release-notes.txt
+            gh release upload android-preview OLUNE.apk Oluni.apk --clobber
             if [[ "$(gh release view android-preview --json assets --jq '[.assets[] | select(.name == "Oluni-Teste.apk")] | length')" != "0" ]]; then
               gh release delete-asset android-preview Oluni-Teste.apk --yes
             fi

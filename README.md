@@ -1,11 +1,11 @@
-# Oluni
+# OLUNE
 
 Ponto, equipe e atendimento em um só lugar.
 
 - Aplicativo: https://oluni.up.railway.app
-- Interface no GitHub Pages: https://delta-1.github.io/Oluni/
-- Código: https://github.com/Delta-1/Oluni
-- Android: https://github.com/Delta-1/Oluni/releases/download/android-preview/Oluni.apk
+- Interface no GitHub Pages: https://delta-1.github.io/OLUNE/
+- Código: https://github.com/Delta-1/OLUNE
+- Android: https://github.com/Delta-1/OLUNE/releases/download/android-preview/OLUNE.apk
 
 ## Começar
 
@@ -42,9 +42,9 @@ O ambiente de desenvolvimento usa registros sintéticos e armazenamento temporá
 
 ## Configuração
 
-Use `.env.example` para novas instalações. O backend exige `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `OLUNI_SECRET` com pelo menos 32 caracteres. Chaves e credenciais ficam no servidor. A implantação existente preserva a variável de segredo anterior e os identificadores internos do armazenamento para manter a compatibilidade criptográfica.
+Use `.env.example` para novas instalações. O backend exige `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `OLUNE_SECRET` com pelo menos 32 caracteres. Chaves e credenciais ficam no servidor. A implantação existente preserva a variável de segredo anterior e os identificadores internos do armazenamento para manter a compatibilidade criptográfica.
 
-Não troque o segredo de criptografia para alterar a marca. O banco compartilhado usa filtros exclusivos de aplicativo e empresa. As aplicações externas não são alteradas pelo Oluni.
+Não troque o segredo de criptografia para alterar a marca. O banco compartilhado usa filtros exclusivos de aplicativo e empresa. As aplicações externas não são alteradas pelo OLUNE.
 
 ## Android
 
@@ -54,23 +54,23 @@ npm ci
 npm run android:sync
 ```
 
-O fluxo `.github/workflows/build-android.yml` compila o APK. A identidade é `br.com.oluni.app`. Assinatura permanente requer os quatro segredos Android descritos em [docs/OLUNI.md](docs/OLUNI.md). Sem eles, o workflow publica o canal de teste. Atualizações de produção verificam assinatura e integridade e abrem o instalador do Android.
+O fluxo `.github/workflows/build-android.yml` compila o APK. A identidade é `br.com.oluni.app`. Assinatura permanente requer os quatro segredos Android descritos em [docs/OLUNE.md](docs/OLUNE.md). Sem eles, o workflow publica o canal de teste. Atualizações de produção verificam assinatura e integridade e abrem o instalador do Android.
 
 ## Limites atuais
 
 O reconhecimento facial não está implementado. O saldo exibido compara jornadas concluídas com a carga diária configurada; feriados, escalas, ajustes e adicionais de folha exigem conferência do RH. Entrega real no WhatsApp requer um número conectado pelo responsável.
 
-Veja [o guia completo](docs/OLUNI.md) para operação, infraestrutura e validação.
+Veja [o guia completo](docs/OLUNE.md) para operação, infraestrutura e validação.
 
 
-Na versão 2.2, o RH cria setores, gera convites com setor predefinido, escolhe método de ponto por empresa ou colaborador, imprime QR Codes em lote e atribui checklists com fotos de antes/depois. Veja o fluxo completo e os limites atuais em [docs/OLUNI.md](docs/OLUNI.md).
+Na versão 2.2, o RH cria setores, gera convites com setor predefinido, escolhe método de ponto por empresa ou colaborador, imprime QR Codes em lote e atribui checklists com fotos de antes/depois. Veja o fluxo completo e os limites atuais em [docs/OLUNE.md](docs/OLUNE.md).
 
 A versão 2.3 adiciona foto de perfil sem aprovação, logo da empresa, crachá individual com consulta online e impressão em lote. Há 40 testes de API, com isolamento entre empresas e revogação dos links de crachá.
 
 A versão 2.4 traz modelos geométricos, cores e fundo próprio para crachás, com prévia, além de configuração independente da IA do WhatsApp. 46 testes cobrem os fluxos e o isolamento de dados.
 
 
-A versão 3.0 adiciona telefone com país e bandeira, reconhecimento pelo número cadastrado sem verificação inicial, conexões/equipes por setor, onboarding de WhatsApp e instalação, pastas pessoais, quadros de post-its e atendimento em Kanban. O chat inclui citações, encaminhamento, reações, edição, exclusão, voz com revisão, figurinhas WebP, grupos e etiquetas. Crachás têm dimensões, folhas, margens, fontes e estilos configuráveis. Veja [a operação da versão 3](docs/OLUNI_V3.md).
+A versão 3.0 adiciona telefone com país e bandeira, reconhecimento pelo número cadastrado sem verificação inicial, conexões/equipes por setor, onboarding de WhatsApp e instalação, pastas pessoais, quadros de post-its e atendimento em Kanban. O chat inclui citações, encaminhamento, reações, edição, exclusão, voz com revisão, figurinhas WebP, grupos e etiquetas. Crachás têm dimensões, folhas, margens, fontes e estilos configuráveis. Veja [a operação da versão 3](docs/OLUNE_V3.md).
 
 ## Flora e atestados (3.5)
 
@@ -85,4 +85,8 @@ A versão 3.0 adiciona telefone com país e bandeira, reconhecimento pelo númer
 - Conversas da Flora no aplicativo e no atendimento automático do colaborador ficam fora da caixa humana. No WhatsApp, os responsáveis pelo número conectado ainda podem ler mensagens no aparelho; o sistema não promete sigilo perante eles. O RH só vê check-ins autodeclarados quando a pessoa autoriza o compartilhamento. Não há inferência de estado mental ou avaliação profissional a partir das conversas.
 - **RH** pede uma pessoa e pausa a automação durante o atendimento. **PARAR** pausa as respostas; **VOLTAR** retoma. O ponto permanece no aplicativo/totem para respeitar o método e a localização da empresa; a Flora consulta apenas os registros do próprio colaborador.
 
-A integração central usa as variáveis de servidor OLUNI_AI_API_KEY, OLUNI_AI_PROVIDER, OLUNI_AI_MODEL e OLUNI_AI_ENABLED. As credenciais não são expostas no aplicativo. Instalação e atualização Android continuam sujeitas à assinatura e à confirmação do instalador.
+A integração central usa as variáveis de servidor OLUNE_AI_API_KEY, OLUNE_AI_PROVIDER, OLUNE_AI_MODEL e OLUNE_AI_ENABLED. As credenciais não são expostas no aplicativo. Instalação e atualização Android continuam sujeitas à assinatura e à confirmação do instalador.
+
+## Identidade OLUNE · 3.6
+
+Marca e materiais em `public/brand/`. Guia de atualização: [docs/OLUNE_MARCA.md](docs/OLUNE_MARCA.md). URLs existentes, identificador Android, namespaces criptográficos e sessões são mantidos por compatibilidade. O workflow publica `OLUNE.apk` e o alias `Oluni.apk` para instalações anteriores. O segredo existente mantém precedência sobre o alias `OLUNE_SECRET`; nunca gere outro segredo para renomear. As variáveis `OLUNE_AI_*` têm preferência, com suporte às antigas `OLUNI_AI_*`.

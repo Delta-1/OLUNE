@@ -1,6 +1,6 @@
 {
-  "name": "oluni-android",
-  "version": "3.5.1",
+  "name": "olune-android",
+  "version": "3.6.0",
   "private": true,
   "type": "module",
   "scripts": {

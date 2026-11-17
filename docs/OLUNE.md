@@ -1,6 +1,6 @@
 # Atualização 2.5.1
 
-O aplicativo e o download usam apenas **Oluni**, com arquivo `Oluni.apk`.
+O aplicativo e o download usam apenas **OLUNE**, com arquivo `OLUNE.apk`.
 O cadastro e as redefinições de senha aceitam de **6 a 200 caracteres**.
 A identidade Android continua `br.com.oluni.app`; o canal com assinatura
 permanente mantém suas verificações de atualização.
@@ -8,25 +8,25 @@ permanente mantém suas verificações de atualização.
 A manutenção completa é executada apenas com uma solicitação explícita e
 única (`OLUNI_RESET_DATA_ONCE`), antes de abrir o servidor e reconectar o
 WhatsApp. Remove registros, contas, empresas, documentos, mensagens,
-configurações e sessões somente do carrier do Oluni e do prefixo
+configurações e sessões somente do carrier do OLUNE e do prefixo
 `moodcorp.v1.`. Preserva as tabelas e os dados dos outros aplicativos. Uma
 marca técnica impede a repetição da mesma solicitação; não existe endpoint
 público para disparar a limpeza. A flag é esvaziada após a verificação.
 
-# Oluni integrado
+# OLUNE integrado
 
 **WhatsApp atualizado na versão 2.5:** consulte [o guia atual de atendimento, visitantes, atestados e convites programados](WHATSAPP.md). As descrições de WhatsApp nas versões anteriores abaixo são históricas.
 
-O Oluni reúne em um só aplicativo o registro de ponto e os módulos de feedback, relatos anônimos, bem-estar e IA.
+O OLUNE reúne em um só aplicativo o registro de ponto e os módulos de feedback, relatos anônimos, bem-estar e IA.
 
 ## Infraestrutura utilizada
 
-- Repositório: Delta-1/Oluni; publicação automática da branch main.
+- Repositório: Delta-1/OLUNE; publicação automática da branch main.
 - Aplicativo e API: https://oluni.up.railway.app
 - Banco utilizado: `qaiqflcxfxygynumapyp`.
 - WhatsApp: processo persistente do próprio aplicativo no Railway, com sessão
   independente por empresa. Nenhuma alteração no serviço WORKSPACES.
-- O banco original do Oluni (`eqjgumevweiswqhogvgk`) permanece intacto:
+- O banco original do OLUNE (`eqjgumevweiswqhogvgk`) permanece intacto:
   o conector disponível não tem permissão para administrá-lo. Não houve
   transferência de seus usuários, marcações ou históricos.
 
@@ -49,7 +49,7 @@ cada link separadamente. A renovação invalida o anterior e preserva as contas.
 
 ## Ponto e relatórios
 
-O fluxo segue o Oluni atualizado: entrada, início do intervalo, fim do
+O fluxo segue o OLUNE atualizado: entrada, início do intervalo, fim do
 intervalo e saída. O funcionário tem um botão principal e o histórico ao lado.
 O horário é atribuído pelo servidor; a sequência e a repetição de requisições
 são verificadas. Um intervalo de 30 segundos bloqueia duplo toque acidental.
@@ -94,12 +94,12 @@ sem URL pública. Funcionário consulta seus arquivos; RH consulta os da empresa
 
 ## Android e atualizações
 
-O diretório `mobile` contém o aplicativo nativo reaproveitado do Oluni,
+O diretório `mobile` contém o aplicativo nativo reaproveitado do OLUNE,
 com identidade Android própria (`br.com.oluni.app`) e a mesma interface do site. O build
 consome a API do Railway. O GitHub Actions gera e publica automaticamente o APK
 quando a interface ou o aplicativo muda.
 
-- Release de teste: `https://github.com/Delta-1/Oluni/releases/tag/android-preview`.
+- Release de teste: `https://github.com/Delta-1/OLUNE/releases/tag/android-preview`.
 - Atualizador: procura o canal `android-latest` deste repositório, verifica
   versão, origem, hash do arquivo e certificado antes de abrir o instalador.
 - Produção exige os segredos `ANDROID_KEYSTORE_BASE64`,
@@ -129,7 +129,7 @@ mensagens no WhatsApp. Reconhecimento facial e teste em Android físico pendente
 
 ## Melhorias da versão 2.1
 
-- Nome Oluni no site, Android, mensagens e relatórios.
+- Nome OLUNE no site, Android, mensagens e relatórios.
 - Cadastro de empresa reduzido: nome da empresa, responsável, WhatsApp, e-mail e senha. Nascimento permanece obrigatório para colaboradores.
 - O e-mail permanece preenchido durante a recuperação de senha.
 - Totem com teclado numérico e aviso de falta de conexão.
@@ -139,7 +139,7 @@ mensagens no WhatsApp. Reconhecimento facial e teste em Android físico pendente
 - Navegação dos módulos de bem-estar voltou a abrir as telas indicadas.
 - Perfil verifica WhatsApp em um único fluxo, sem exigir enviar um código longo ao bot.
 
-O adaptador conserva identificadores e a derivação criptográfica anteriores para manter os registros legíveis. A marca apresentada aos usuários é Oluni. A variável de segredo anterior continua aceita por compatibilidade; não deve ser rotacionada durante a troca de marca.
+O adaptador conserva identificadores e a derivação criptográfica anteriores para manter os registros legíveis. A marca apresentada aos usuários é OLUNE. A variável de segredo anterior continua aceita por compatibilidade; não deve ser rotacionada durante a troca de marca.
 
 
 ## Versão 2.2 — setores, presença e tarefas

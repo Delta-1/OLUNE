@@ -48,7 +48,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  const channels=createChannels({store,secret,gateway});if(gateway)gateway.resolveContext=channels.resolve;
  const companyFor=async id=>{const c=await store.get('company',id,id);if(!c)throw fail(404,'Empresa não encontrada.');return c;};
  const issue=async(user,remember)=>{const raw=token(),id=lookup(secret,'session',digest(raw));await store.put('session',user.companyId,{userId:user.id,companyId:user.companyId,expiresAt:new Date(Date.now()+(remember?30*86400000:8*3600000)).toISOString()},id,true);return {token:raw,user:publicUser(user)};};
- route('get','/health',async(req,res)=>{const healthy=await store.health();res.status(healthy?200:503).json({service:'Oluni',version:appVersion,database:healthy});});
+ route('get','/health',async(req,res)=>{const healthy=await store.health();res.status(healthy?200:503).json({service:'OLUNE',version:appVersion,database:healthy});});
  installPublicApp({route,publicAppUrl});
  const badges=createBadgeService({route,store,secret,companyFor,forUser:u=>ensureEmployeeCode(store,secret,u),publicAppUrl,serial:attendanceSerial});
  let attendance,welcome;
@@ -127,7 +127,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
    target.whatsappJid=jid;
    if(jid===target.phone+'@s.whatsapp.net')target.phoneVerified=true;
    await store.put('user',cid,target,target.id);await store.remove('wa-link',id,cid);
-   return 'Seu WhatsApp foi vinculado ao Oluni. Envie MENU para começar. Para registrar humor, envie HUMOR e um número de 1 a 5. Envie PARAR para encerrar.';
+   return 'Seu WhatsApp foi vinculado ao OLUNE. Envie MENU para começar. Para registrar humor, envie HUMOR e um número de 1 a 5. Envie PARAR para encerrar.';
   }
   if(!u)return null;
   if(/^(PARAR|SAIR|STOP)$/i.test(message.trim())){u.whatsappConsent=false;await store.put('user',cid,u,u.id);await waAI.clear(cid,u.id,channelId);await store.remove('bot-state',lookup(secret,'bot-state',cid,u.id,...(channelId===cid?[]:[channelId])),cid);return 'Respostas automáticas pausadas. Envie VOLTAR para retomar ou altere a preferência no aplicativo.';}

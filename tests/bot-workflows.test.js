@@ -4,7 +4,7 @@ import {zipSync,strToU8,unzipSync} from 'fflate';
 import {createApp} from '../server/app.js';
 import {MemoryStore} from '../server/store.js';
 import {extractKnowledge,redactKnowledge} from '../server/file-content.js';
-const secret='oluni-bot-workflows-tests-32-characters';
+const secret='olune-bot-workflows-tests-32-characters';
 const pdf={mime:'application/pdf',name:'arquivo.pdf',buffer:Buffer.from('%PDF-1.4\nDocumento sintético de teste')};
 async function fixture(t,{employees=true}={}){
  const store=new MemoryStore(),calls=[],sent=[],phones=new Map(),gateway={status:async key=>({status:'connected',phone:phones.get(key)||'5568999999900'}),sendText:async(k,jid,text)=>{sent.push({k,jid,text});return {key:{id:'sent-'+sent.length}};},sendMedia:async()=>({key:{id:'sent-media'}}),read:async()=>{}};

@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import {createApp} from '../server/app.js';
 import {MemoryStore} from '../server/store.js';
 import {hrAssistant,companion} from '../server/ai.js';
-const secret='oluni-theme-ai-test-only-32-character-secret';
+const secret='olune-theme-ai-test-only-32-character-secret';
 const person=(email,extra={})=>({name:'Pessoa Exemplo',email,password:'test-password-123',phone:'5568999999999',birthDate:'2000-01-01',jobTitle:'Auxiliar',...extra});
 const config={provider:'gemini',model:'test-model',botName:'Equipe RH',instructions:'Oriente sobre documentos e ponto.',mode:'menu',enabled:true,apiKey:'test-only-key-not-real'};
 async function fixture(t){

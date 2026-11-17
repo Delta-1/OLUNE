@@ -21,14 +21,14 @@ test('whole-project reset requires an explicit token and never repeats after new
  assert.equal(calls,1);assert.equal((await store.list('user')).length,1);
 });
 
-test('Supabase reset deletes only the Oluni carrier AND namespace, including unknown future kinds',async()=>{
+test('Supabase reset deletes only the OLUNE carrier AND namespace, including unknown future kinds',async()=>{
  const rows=[
-  {id:'a',company_id:'oluni',kind:'moodcorp.v1.user'},
-  {id:'b',company_id:'oluni',kind:'moodcorp.v1.company'},
-  {id:'c',company_id:'oluni',kind:'moodcorp.v1.session'},
-  {id:'d',company_id:'oluni',kind:'moodcorp.v1.future-private-document'},
+  {id:'a',company_id:'olune',kind:'moodcorp.v1.user'},
+  {id:'b',company_id:'olune',kind:'moodcorp.v1.company'},
+  {id:'c',company_id:'olune',kind:'moodcorp.v1.session'},
+  {id:'d',company_id:'olune',kind:'moodcorp.v1.future-private-document'},
   {id:'e',company_id:'other-app',kind:'moodcorp.v1.user'},
-  {id:'f',company_id:'oluni',kind:'startsys.chat'},
+  {id:'f',company_id:'olune',kind:'startsys.chat'},
   {id:'g',company_id:'other-app',kind:'startsys.chat'}
  ];
  const db={from(table){assert.equal(table,'startsys_records');const filters=[];let deleting=false;return {
@@ -40,7 +40,7 @@ test('Supabase reset deletes only the Oluni carrier AND namespace, including unk
  };}};
  const store=new SupabaseStore(db,secret);
  await assert.rejects(()=>store.resetProjectData(),/não inicializado/);
- store.root='oluni';
+ store.root='olune';
  assert.deepEqual(await store.resetProjectData(),{before:{records:4,accounts:1,companies:1,sessions:1},deleted:4,after:{records:0,accounts:0,companies:0,sessions:0}});
  assert.deepEqual(rows.map(row=>row.id),['e','f','g']);
 });

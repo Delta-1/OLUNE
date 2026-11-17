@@ -5,7 +5,7 @@ import {MemoryStore} from '../server/store.js';
 import {WhatsAppGateway,acceptInboxEvent} from '../server/whatsapp.js';
 import {checkedBadgeDesign} from '../server/badge-design.js';
 import {voiceToOpus} from '../server/voice.js';
-const secret='oluni-v3-tests-at-least-32-characters';
+const secret='olune-v3-tests-at-least-32-characters';
 async function fixture(t,{platform=false}={}){
  const store=new MemoryStore(),sent=[],calls=[],states=new Map(),gateway={status:async k=>({status:states.get(k)||'connected'}),connect:async k=>states.set(k,'qr_pending'),disconnect:async k=>states.set(k,'disconnected'),sendText:async(k,jid,text,options)=>{sent.push({k,jid,text,options});return {key:{id:'sent-'+sent.length,remoteJid:jid,fromMe:true}};},sendMedia:async(k,jid,file,text,options)=>{sent.push({k,jid,file,text,options});return {key:{id:'sent-'+sent.length,remoteJid:jid,fromMe:true}};},groups:async()=>[{jid:'120123456789@g.us',name:'Equipe'}],read:async()=>{},editMessage:async(...x)=>calls.push(['edit',...x]),deleteMessage:async(...x)=>calls.push(['delete',...x]),react:async(...x)=>calls.push(['react',...x])};
  const ai=async(s)=>{assert.equal(s.apiKey,'platform-secret-never-serialize');return 'Resposta de exemplo';};
@@ -60,7 +60,7 @@ test('onboarding exige conexão ou decisão explícita de conectar depois e ofer
  assert.equal((await f.request('/onboarding',{step:'install'},f.admin.token)).status,409);assert.equal((await f.request('/onboarding',{step:'install',skipConnection:true},f.admin.token)).status,200);
  assert.equal((await f.request('/onboarding',{step:'done',skipConnection:true},f.admin.token)).status,200);assert.equal((await f.request('/bootstrap',undefined,f.admin.token)).body.onboardingRequired,false);
  assert.equal((await f.request('/onboarding',{step:'whatsapp'},f.employee.token)).status,400);assert.equal((await f.request('/onboarding',{step:'done'},f.employee.token)).status,200);
- const app=(await f.request('/public/app')).body;assert.match(app.qrImage,/^data:image\/png;base64,/);assert.match(app.installUrl,/instalar=1/);assert.equal(app.version,'3.5.1');
+ const app=(await f.request('/public/app')).body;assert.match(app.qrImage,/^data:image\/png;base64,/);assert.match(app.installUrl,/instalar=1/);assert.equal(app.version,'3.6.0');
 });
 test('pastas pessoais permitem documentos e movimentação, mantendo isolamento por funcionário e empresa',async t=>{
  const f=await fixture(t),id=f.employee.user.id,p='/people/'+id,token=f.employee.token;

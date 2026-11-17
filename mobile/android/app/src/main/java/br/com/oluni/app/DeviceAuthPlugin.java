@@ -56,7 +56,7 @@ public class DeviceAuthPlugin extends Plugin {
                 }
             );
 
-            String title = call.getString("title", "Desbloquear Oluni");
+            String title = call.getString("title", "Desbloquear OLUNE");
             String subtitle = call.getString("subtitle", "Confirme sua identidade no aparelho");
             BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(title)

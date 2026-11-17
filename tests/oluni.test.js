@@ -6,7 +6,7 @@ import {createClockRequest} from '../src/clock-request.js';
 import {createSessionState} from '../src/session.js';
 
 test('cadastro da empresa dispensa nascimento e mantém funcionário obrigatório',async t=>{
- const app=createApp({store:new MemoryStore(),secret:'oluni-test-only-secret-at-least-32-chars'}),server=app.listen(0,'127.0.0.1');
+ const app=createApp({store:new MemoryStore(),secret:'olune-test-only-secret-at-least-32-chars'}),server=app.listen(0,'127.0.0.1');
  await new Promise(r=>server.once('listening',r));t.after(()=>new Promise(r=>server.close(r)));
  const base='http://127.0.0.1:'+server.address().port+'/api';
  const person={name:'Responsável Exemplo',email:'admin@example.com',phone:'5568999999999',password:'test-password123',mode:'company',document:'11222333000181',companyName:'Empresa Exemplo'};

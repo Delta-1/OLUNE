@@ -4,7 +4,7 @@ import {createApp} from '../server/app.js';
 import {MemoryStore} from '../server/store.js';
 import {WhatsAppGateway,acceptInboxEvent} from '../server/whatsapp.js';
 import {checkedAttachment} from '../server/whatsapp-inbox.js';
-const secret='oluni-communications-tests-secret-only-12345';
+const secret='olune-communications-tests-secret-only-12345';
 const schedule={enabled:true,mode:'scheduled',time:'10:00',windowStart:'10:00',windowEnd:'16:00',weekdays:[0,1,2,3,4,5,6],intervalDays:3,opening:'Como foi seu dia de trabalho? Quer conversar?'};
 const person=(email,extra={})=>({name:'Pessoa Exemplo',email,password:'test-password-123',phone:'5568999999999',birthDate:'2000-01-01',jobTitle:'Auxiliar',...extra});
 async function fixture(t,{wellbeingAI=async()=> 'Sou a Flora, uma IA. O que ajudaria a tornar seu dia mais leve?'}={}){
@@ -127,7 +127,7 @@ test('frequência mínima, dias escolhidos e tolerância evitam envio atrasado e
 });
 
 test('marcadores persistentes impedem que códigos enviados pelo sistema vazem após reinício',async t=>{
- const f=await fixture(t),g=new WhatsAppGateway(f.store,secret),cid=f.cid,jid='5568991112222@s.whatsapp.net';const s={status:'connected',stop:false,sock:{sendMessage:async()=>({key:{id:'private-code-id'}})}};g.sessions.set(cid,s);await g.save(cid,{requested:true,startedAt:new Date(Date.now()-10000).toISOString()});await g.sendText(cid,jid,'Oluni: seu código para verificar o WhatsApp é 123456. Válido por 10 minutos. Não compartilhe.');
+ const f=await fixture(t),g=new WhatsAppGateway(f.store,secret),cid=f.cid,jid='5568991112222@s.whatsapp.net';const s={status:'connected',stop:false,sock:{sendMessage:async()=>({key:{id:'private-code-id'}})}};g.sessions.set(cid,s);await g.save(cid,{requested:true,startedAt:new Date(Date.now()-10000).toISOString()});await g.sendText(cid,jid,'OLUNE: seu código para verificar o WhatsApp é 123456. Válido por 10 minutos. Não compartilhe.');
  const restarted=new WhatsAppGateway(f.store,secret);restarted.onOwnMessage=f.app.locals.whatsappHub.own;
  await restarted.receiveRaw(cid,s,s.sock,{key:{id:'private-code-id',remoteJid:jid,fromMe:true},messageTimestamp:Math.floor(Date.now()/1000),message:{conversation:'Texto de sistema já enviado'}},'append');assert.equal((await f.store.list('wa-message',cid)).length,0);
 });

@@ -37,7 +37,7 @@ export function installWorkforce({route,store,secret,admin,companyFor,serial,for
     return 'oluni:qr:'+data+'.'+createHmac('sha256',secret).update('oluni-qr:'+data).digest('base64url');
   };
   const checkQr=(raw,company,user)=>{
-    if(typeof raw!=='string'||raw.length>1200||!raw.startsWith('oluni:qr:'))throw fail(400,'Leia um QR Code de presença do Oluni.');
+    if(typeof raw!=='string'||raw.length>1200||!raw.startsWith('oluni:qr:'))throw fail(400,'Leia um QR Code de presença do OLUNE.');
     const [payload,signature,extra]=raw.slice(9).split('.'),expected=createHmac('sha256',secret).update('oluni-qr:'+(payload||'')).digest(),actual=Buffer.from(signature||'','base64url');
     if(extra||actual.length!==expected.length||!timingSafeEqual(expected,actual))throw fail(400,'QR Code inválido.');
     let p;try{p=JSON.parse(Buffer.from(payload,'base64url'));}catch{throw fail(400,'QR Code inválido.');}

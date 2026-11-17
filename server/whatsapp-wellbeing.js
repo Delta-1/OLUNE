@@ -11,7 +11,7 @@ export function installWellbeing({route,store,secret,admin,gateway,configFor,cha
  const active=async(cid,uid,key=cid)=>{const s=await store.get('wa-wellbeing-session',sessionId(cid,uid,key),cid);return s&&Date.parse(s.until)>Date.now();};
  const stop=async(cid,uid,key)=>{if(key){await Promise.all([store.remove('wa-wellbeing-session',sessionId(cid,uid,key),cid),store.remove('wa-wellbeing-chat',historyId(cid,uid,key),cid)]);}else for(const kind of ['wa-wellbeing-session','wa-wellbeing-chat'])for(const row of await store.list(kind,cid,{owner:uid}))await store.remove(kind,row.id,cid);};
  const open=async(cid,uid,key=cid)=>store.put('wa-wellbeing-session',cid,{owner:uid,channelId:key,until:new Date(Date.now()+24*3600000).toISOString()},sessionId(cid,uid,key));
- const disclosure='Sou um bot do Oluni. Participar é opcional. Para registrar humor, envie HUMOR 1 (muito mal) a HUMOR 5 (muito bem). O RH vê somente o humor que você autorizar. Esta conversa fica fora da caixa de atendimento, mas quem acessa o WhatsApp conectado pode ler as mensagens no aparelho. MENU volta aos serviços; PARAR BEM-ESTAR desativa os convites.';
+ const disclosure='Sou um bot do OLUNE. Participar é opcional. Para registrar humor, envie HUMOR 1 (muito mal) a HUMOR 5 (muito bem). O RH vê somente o humor que você autorizar. Esta conversa fica fora da caixa de atendimento, mas quem acessa o WhatsApp conectado pode ler as mensagens no aparelho. MENU volta aos serviços; PARAR BEM-ESTAR desativa os convites.';
  const opening=async cid=>(await config(cid)).opening+'\n\n'+disclosure;
  route('get','/admin/whatsapp/wellbeing',admin,async(req,res)=>{
   const cid=req.user.companyId,settings=await config(cid),users=await store.list('user',cid),jobs=await store.list('wa-wellbeing-delivery',cid,{limit:500});const c=await store.get('company',cid,cid);
@@ -80,5 +80,5 @@ export function installWellbeing({route,store,secret,admin,gateway,configFor,cha
    }
   }}finally{running=false;}
  };
- return {receive,active,stop,tick,opening,start(){if(timer)return;timer=setInterval(()=>tick().catch(()=>console.error('Oluni: envio de bem-estar pendente.')),60000);timer.unref();tick().catch(()=>{});},close(){clearInterval(timer);timer=null;}};
+ return {receive,active,stop,tick,opening,start(){if(timer)return;timer=setInterval(()=>tick().catch(()=>console.error('OLUNE: envio de bem-estar pendente.')),60000);timer.unref();tick().catch(()=>{});},close(){clearInterval(timer);timer=null;}};
 }

@@ -1,23 +1,23 @@
-# WhatsApp e Crachá · Oluni 3.2
+# WhatsApp e Crachá · OLUNE 3.2
 
-WhatsApp ocupa a tela inteira no computador e no celular. Use a seta Oluni para voltar ao sistema. A faixa superior reúne Conversas, Kanban, Bot, Equipe e Menu. As configurações de saudação, IA, bem-estar e números ficam dentro dessa área; as permissões por setor continuam valendo.
+WhatsApp ocupa a tela inteira no computador e no celular. Use a seta OLUNE para voltar ao sistema. A faixa superior reúne Conversas, Kanban, Bot, Equipe e Menu. As configurações de saudação, IA, bem-estar e números ficam dentro dessa área; as permissões por setor continuam valendo.
 
 Ao abrir Conversas com um número desconectado, o administrador vê as instruções e a conexão é iniciada automaticamente. O QR válido chega da sessão de WhatsApp e é atualizado na tela. O aparelho da empresa deve escaneá-lo em Aparelhos conectados → Conectar aparelho. Atendentes sem permissão administrativa veem a orientação para pedir ao responsável a vinculação.
 
 ## Chave padrão do sistema
 
-No Railway, abra o serviço Oluni → Variables:
+No Railway, abra o serviço OLUNE → Variables:
 
-- OLUNI_AI_API_KEY: chave secreta do provedor.
-- OLUNI_AI_PROVIDER: openai ou gemini.
-- OLUNI_AI_MODEL: identificador de um modelo liberado para essa chave.
-- OLUNI_AI_ENABLED: true para disponibilizar a integração.
+- OLUNE_AI_API_KEY: chave secreta do provedor.
+- OLUNE_AI_PROVIDER: openai ou gemini.
+- OLUNE_AI_MODEL: identificador de um modelo liberado para essa chave.
+- OLUNE_AI_ENABLED: true para disponibilizar a integração.
 
 Aplique as variáveis no serviço para reiniciar com a configuração. A chave central é lida somente no servidor; não use variáveis VITE_ para guardar segredos e não publique a chave no GitHub.
 
 A Flora e os bots sem chave própria usam a central. Configurações próprias já salvas continuam tendo prioridade: para usar a central, remova a chave própria da empresa/setor. Ativação do bot e consentimentos dos colaboradores continuam sendo respeitados. O menu de serviços e a organização de documentos não precisam de IA.
 
-Para uma chave apenas do setor: WhatsApp → Bot → Assistente de IA → Chave própria deste setor e provedor. Salve e use Testar configuração salva. Para a chave própria da Flora na empresa, use a aba IA do Oluni. Uma chave salva pelo RH nunca altera a integração central de outras empresas.
+Para uma chave apenas do setor: WhatsApp → Bot → Assistente de IA → Chave própria deste setor e provedor. Salve e use Testar configuração salva. Para a chave própria da Flora na empresa, use a aba IA do OLUNE. Uma chave salva pelo RH nunca altera a integração central de outras empresas.
 
 ## Atualização das mensagens
 

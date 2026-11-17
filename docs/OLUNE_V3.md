@@ -1,4 +1,4 @@
-# Oluni 3 · Operação
+# OLUNE 3 · Operação
 
 ## Primeiro acesso
 
@@ -35,15 +35,15 @@ Jornada e atendimento → Logo e crachá → Personalizar crachá. Configure enf
 
 ## IA central e fase de projeto
 
-Não há cobrança implementada nesta fase. Flora e bot podem herdar a mesma integração central. O administrador da plataforma provisiona `OLUNI_AI_API_KEY`, `OLUNI_AI_PROVIDER` e `OLUNI_AI_MODEL` no servidor Railway do Oluni; a chave não aparece no aplicativo nem é copiada para os registros de cada empresa. Sem chave disponível, as telas mostram “aguardando ativação”; menus, ponto, documentos e atendimento humano continuam funcionando. Chaves próprias de empresas existentes continuam suportadas nas opções avançadas. Autorização pessoal para conversar com IA e para convites de bem-estar é independente do cadastro de telefone. Nenhuma avaliação clínica ou classificação de funcionário é gerada para o RH.
+Não há cobrança implementada nesta fase. Flora e bot podem herdar a mesma integração central. O administrador da plataforma provisiona `OLUNE_AI_API_KEY`, `OLUNE_AI_PROVIDER` e `OLUNE_AI_MODEL` no servidor Railway do OLUNE; a chave não aparece no aplicativo nem é copiada para os registros de cada empresa. Sem chave disponível, as telas mostram “aguardando ativação”; menus, ponto, documentos e atendimento humano continuam funcionando. Chaves próprias de empresas existentes continuam suportadas nas opções avançadas. Autorização pessoal para conversar com IA e para convites de bem-estar é independente do cadastro de telefone. Nenhuma avaliação clínica ou classificação de funcionário é gerada para o RH.
 
 ## Instalação e atualizações
 
-Mais → Instalar aplicativo reabre QR, link e download. O site sempre carrega a versão atual ao abrir e verifica novas versões durante o uso, mostrando atualização sem perder edições em andamento. O aplicativo Android verifica versões compatíveis e pede confirmação no instalador do aparelho. O canal de produção requer os quatro segredos de assinatura Android do workflow, conforme `docs/OLUNI.md`. Sem assinatura permanente, o canal Android continua sendo uma compilação com assinatura temporária e não oferece atualização automática de produção. A chave central de IA também precisa ser provisionada antes de o bot e a Flora responderem por ela.
+Mais → Instalar aplicativo reabre QR, link e download. O site sempre carrega a versão atual ao abrir e verifica novas versões durante o uso, mostrando atualização sem perder edições em andamento. O aplicativo Android verifica versões compatíveis e pede confirmação no instalador do aparelho. O canal de produção requer os quatro segredos de assinatura Android do workflow, conforme `docs/OLUNE.md`. Sem assinatura permanente, o canal Android continua sendo uma compilação com assinatura temporária e não oferece atualização automática de produção. A chave central de IA também precisa ser provisionada antes de o bot e a Flora responderem por ela.
 
 ## Infraestrutura e validação
 
-A atualização preserva o armazenamento criptografado e o namespace existente do Oluni no Supabase compartilhado. Não inclui limpeza de dados, alteração de credenciais ou de outros sistemas. O Railway precisa de `RAILPACK_DEPLOY_APT_PACKAGES=ffmpeg` para gravar voz compatível. Testes locais usam banco em memória e gateway simulado; envio/recebimento real, QR e funções nativas do WhatsApp dependem de pareamento pelo responsável. Não são enviados testes para números reais.
+A atualização preserva o armazenamento criptografado e o namespace existente do OLUNE no Supabase compartilhado. Não inclui limpeza de dados, alteração de credenciais ou de outros sistemas. O Railway precisa de `RAILPACK_DEPLOY_APT_PACKAGES=ffmpeg` para gravar voz compatível. Testes locais usam banco em memória e gateway simulado; envio/recebimento real, QR e funções nativas do WhatsApp dependem de pareamento pelo responsável. Não são enviados testes para números reais.
 
 
 ## Correção 3.0.1 · telefone e edição cadastral

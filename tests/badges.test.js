@@ -5,7 +5,7 @@ import {PNG} from 'pngjs';
 import jsQR from 'jsqr';
 import {createApp} from '../server/app.js';
 import {MemoryStore} from '../server/store.js';
-const secret='oluni-badges-tests-only-at-least-32-chars';
+const secret='olune-badges-tests-only-at-least-32-chars';
 const person=(email,extra={})=>({name:'Pessoa Exemplo',email,password:'test-password-123',phone:'5568999999999',birthDate:'2000-01-01',jobTitle:'Auxiliar',...extra});
 async function fixture(t){
  const store=new MemoryStore(),server=createApp({store,secret,publicAppUrl:'https://oluni.up.railway.app/'}).listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));t.after(()=>new Promise(r=>server.close(r)));

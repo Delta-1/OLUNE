@@ -4,7 +4,7 @@ import {MemoryStore} from '../server/store.js';
 import {inboxUpdates} from '../server/inbox-updates.js';
 import {createApp} from '../server/app.js';
 import {WhatsAppGateway} from '../server/whatsapp.js';
-const secret='oluni-live-tests-with-only-synthetic-data-12345';
+const secret='olune-live-tests-with-only-synthetic-data-12345';
 test('notificação acorda sem esperar o intervalo e isola empresa, canal e conteúdo privado',async()=>{
  const store=new MemoryStore(),hub=inboxUpdates(store),first=await hub.wait('a','channel-a',''),other=await hub.wait('b','channel-a',''),abort=new AbortController();
  let completed=false;const pending=hub.wait('a','channel-a',first.cursor,abort.signal).then(r=>{completed=true;return r;});

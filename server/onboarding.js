@@ -1,11 +1,11 @@
 import QRCode from 'qrcode';
 import {fail} from './security.js';
-export const appVersion='3.5.1';
+export const appVersion='3.6.0';
 export function installPublicApp({route,publicAppUrl}){
  const origin=new URL(publicAppUrl||process.env.PUBLIC_APP_URL||'https://oluni.up.railway.app/');origin.search='';origin.hash='';
  const install=new URL(origin);install.searchParams.set('instalar','1');
  route('get','/client-version',async(req,res)=>res.json({version:appVersion}));
- route('get','/public/app',async(req,res)=>res.json({version:appVersion,appUrl:origin.href,installUrl:install.href,apkUrl:'https://github.com/Delta-1/Oluni/releases/download/android-preview/Oluni.apk',qrImage:await QRCode.toDataURL(install.href,{width:300,margin:2})}));
+ route('get','/public/app',async(req,res)=>res.json({version:appVersion,appUrl:origin.href,installUrl:install.href,apkUrl:'https://github.com/Delta-1/OLUNE/releases/download/android-preview/OLUNE.apk',qrImage:await QRCode.toDataURL(install.href,{width:300,margin:2})}));
 }
 export function installOnboarding({route,store,admin,channels,gateway,platform}){
  route('get','/onboarding',async(req,res)=>{const u=req.user,c=await store.get('company',u.companyId,u.companyId),step=u.role==='admin'?c.onboarding:u.onboarding;res.json({required:!step?.completed,step:step?.step||(u.role==='admin'?'whatsapp':'install'),admin:u.role==='admin',platform:platform.safe(),channels:u.role==='admin'?await channels.list(u):[]});});

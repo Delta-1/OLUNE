@@ -1,4 +1,4 @@
-name: Publicar Oluni
+name: Publicar OLUNE
 on:
   push:
     branches: [main]

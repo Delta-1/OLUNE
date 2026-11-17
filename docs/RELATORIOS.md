@@ -1,4 +1,4 @@
-# Relatórios e leitura · Oluni 3.1
+# Relatórios e leitura · OLUNE 3.1
 
 A interface amplia fontes de menus, campos, tabelas e textos de apoio. Perfil, configurações, bot e Meu ponto foram separados por abas para reduzir rolagem. Listas extensas e mensagens mantêm rolagem própria; celular e zoom do navegador continuam com fluxo normal para não cortar conteúdo. O tamanho físico de crachás impressos é preservado.
 

@@ -7,7 +7,7 @@ import {MemoryStore} from '../server/store.js';
 import {employeeCodeFor} from '../server/workforce-policy.js';
 import {ensureEmployeeCode,localDay} from '../server/attendance.js';
 import {lookup} from '../server/security.js';
-const secret='oluni-workforce-test-only-32-characters-secret';
+const secret='olune-workforce-test-only-32-characters-secret';
 const person=(email,extra={})=>({name:'Pessoa Exemplo',email,password:'test-password-123',phone:'5568999999999',birthDate:'2000-01-01',jobTitle:'Auxiliar',...extra});
 const gps=()=>({lat:-10.99,lng:-68.74,accuracy:12,capturedAt:Date.now()});
 const photo={mime:'image/png',data:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRxkAAAAASUVORK5CYII='};

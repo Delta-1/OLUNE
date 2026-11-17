@@ -16,7 +16,7 @@ public class OluniPrintPlugin extends Plugin {
             try {
                 PrintManager manager = (PrintManager) getContext().getSystemService(Context.PRINT_SERVICE);
                 if (manager == null) { call.reject("Impressão indisponível neste aparelho."); return; }
-                manager.print("Oluni - Impressão", getBridge().getWebView().createPrintDocumentAdapter("Oluni - Impressão"),
+                manager.print("OLUNE - Impressão", getBridge().getWebView().createPrintDocumentAdapter("OLUNE - Impressão"),
                     new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build());
                 call.resolve();
             } catch (Exception error) { call.reject("Não foi possível abrir a impressão.", error); }
