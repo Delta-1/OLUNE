@@ -19,8 +19,8 @@ Criei uma **tela de planos de pagamento só para demonstração**, ainda sem cob
 | Plano | Desconto | Valor/mês | Total cobrado | Economia |
 |---|---|---|---|---|
 | Mensal | 0% | R$ 200 | R$ 200 por mês | — |
-| Semestral | 15% | R$ 170 | R$ 1.020 a cada 6 meses | R$ 180 |
-| Anual (destaque "Mais vantajoso") | 25% | R$ 150 | R$ 1.800 por ano | R$ 600 |
+| Semestral | 5% | R$ 190 | R$ 1.140 a cada 6 meses | R$ 60 |
+| Anual (destaque "Mais vantajoso") | 10% | R$ 180 | R$ 2.160 por ano | R$ 240 |
 
 Os valores são calculados em `src/plans.tsx` a partir de `BASE = 200` e do desconto de cada plano. Para mudar os preços, basta alterar esses números.
 

@@ -15,8 +15,8 @@ const make=(id:PlanId,name:string,months:number,discount:number,note:string,feat
 };
 export const PLANS:Plan[]=[
   make('monthly','Mensal',1,0,'Flexível, sem fidelidade.'),
-  make('semiannual','Semestral',6,.15,'Cobrado a cada 6 meses.'),
-  make('annual','Anual',12,.25,'Cobrado uma vez por ano.',true),
+  make('semiannual','Semestral',6,.05,'Cobrado a cada 6 meses.'),
+  make('annual','Anual',12,.10,'Cobrado uma vez por ano.',true),
 ];
 export const FEATURES=['Registro de ponto pelo app, QR Code e totem','Colaboradores, setores e convites ilimitados','Relatórios de ponto e documentos','Atendimento pelo WhatsApp com IA','Flora, a assistente de bem-estar','Suporte e atualizações incluídos'];
 
