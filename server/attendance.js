@@ -176,13 +176,14 @@ export function installAttendance({route,store,secret,admin,companyFor,gateway,p
   return {mine,punch,saveDocument};
 }
 
-export function installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor=async u=>u.companyId,getAttendance}) {
+export function installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor=async u=>u.companyId,getAttendance,assertWritable=async()=>{}}) {
   route('post','/public/access',limiter(30,60000),async(req,res)=>{
     const kind=req.body.kind==='totem'?'totem':'invite',c=await resolveAccess(store,secret,req.body.token,kind);
     res.json({name:c.name,timezone:companySettings(c).timezone,department:c.invitedDepartment||null,attendanceMethod:c.attendanceMethod||'code'});
   });
   route('post','/public/totem/punch',limiter(20,60000),async(req,res)=>{
     const c=await resolveAccess(store,secret,req.body.token,'totem'),code=String(req.body.code||'').trim().toUpperCase();
+    await assertWritable(c.id);
     if(!/^(?:[A-Z]?\d{4}|\d{6})$/.test(code))throw fail(400,'Digite os 4 números do seu código e a letra, se houver.');
     const item=await store.get('employee-code',lookup(secret,'employee-code',c.id,code),c.id);
     const user=item&&await store.get('user',item.owner,c.id);

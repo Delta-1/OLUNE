@@ -1,0 +1,16 @@
+/* Faixa do teste grátis: discreta no início, mais forte nos últimos 2 dias. */
+.ol-trial{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;border:1px solid var(--pn-border);background:var(--pn-panel);border-radius:12px;padding:10px 12px 12px 14px;margin:0 0 16px;color:var(--pn-muted)}
+.ol-trial>svg{flex-shrink:0;color:var(--pn-accent)}
+.ol-trial>span{flex:1;min-width:0;font-size:14px;line-height:1.5}
+.ol-trial>span b{color:var(--pn-text);font-weight:600}
+.ol-trial>.pn-button{min-height:36px!important;padding:7px 13px!important;flex-shrink:0}
+.ol-trial-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffffff0d}
+.ol-trial-progress>i{display:block;height:100%;background:var(--pn-accent);border-radius:0 3px 3px 0}
+.ol-trial.urgent{border-color:#e7b45a66;background:#e7b45a12}
+.ol-trial.urgent>svg{color:#f0c674}
+.ol-trial.urgent .ol-trial-progress>i{background:#f0c674}
+.ol-trial.expired{border-color:#ef777755;background:#ef777712;padding-bottom:10px}
+.ol-trial.expired>svg{color:#f19b9b}
+.ol-plans-status{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--pn-muted)}
+.ol-plans-status b{color:var(--pn-text);font-weight:600}
+@media(max-width:600px){.ol-trial{flex-wrap:wrap}.ol-trial>span{flex-basis:calc(100% - 30px)}.ol-trial>.pn-button{width:100%}}

@@ -1,9 +1,10 @@
-// Tela de planos (DEMONSTRAÇÃO). Nenhuma cobrança é feita aqui:
-// a escolha fica só no navegador até a integração de pagamento existir.
+// Tela de planos. Ainda sem cobrança online: a escolha fica no navegador e,
+// se OLUNE_SALES_WHATSAPP estiver configurado, abre o WhatsApp para ativar o plano.
 import React,{useState} from 'react';
 import {ArrowRight,Check,ShieldCheck,Sparkles} from 'lucide-react';
 import {BrandLogo} from './brand';
 import './plans.css';
+import {type Access,daysText,isExpired,isLastDay,isTrialing,daysLeft} from './trial';
 
 export type PlanId='monthly'|'semiannual'|'annual';
 export type Plan={id:PlanId,name:string,months:number,perMonth:number,total:number,saving:number,discount:number,note:string,featured?:boolean};
@@ -35,19 +36,31 @@ function PlanCards({selected,onSelect}:{selected:PlanId,onSelect:(id:PlanId)=>vo
     </button>)}</div>;
 }
 
-export function Plans({onDone,onSkip,embedded=false,notify}:{onDone?:(plan:Plan)=>void,onSkip?:()=>void,embedded?:boolean,notify?:(text:string)=>void}){
+export function Plans({onDone,onSkip,embedded=false,notify,access,companyName='',admin=true}:{onDone?:(plan:Plan)=>void,onSkip?:()=>void,embedded?:boolean,notify?:(text:string)=>void,access?:Access|null,companyName?:string,admin?:boolean}){
   const [selected,setSelected]=useState<PlanId>(savedPlan()||'annual');
   const plan=PLANS.find(p=>p.id===selected)!;
-  const confirm=()=>{try{localStorage.setItem(KEY,plan.id);}catch{}notify?.('Plano '+plan.name+' selecionado.');onDone?.(plan);};
+  const confirm=()=>{
+    try{localStorage.setItem(KEY,plan.id);}catch{}
+    if(access?.contact){window.open('https://wa.me/'+access.contact+'?text='+encodeURIComponent('Olá! Quero ativar o plano '+plan.name+' do OLUNE'+(companyName?' para a empresa '+companyName:'')+'.'),'_blank','noopener');notify?.('Abrimos o WhatsApp para ativar o plano '+plan.name+'.');}
+    else notify?.('Plano '+plan.name+' selecionado.');
+    onDone?.(plan);
+  };
+  const expired=isExpired(access),lastDay=isLastDay(access);
+  const intro=expired?{tag:'TESTE GRÁTIS ENCERRADO',title:'Seus '+(access?.trialDays||7)+' dias grátis terminaram.',text:'Tudo que sua equipe registrou continua guardado. Escolha um plano para voltar a registrar ponto, documentos e mensagens.'}
+    :lastDay?{tag:'ÚLTIMO DIA DO TESTE',title:'Seu teste grátis termina hoje.',text:'Escolha um plano agora para a equipe continuar usando o OLUNE amanhã, sem pausa.'}
+    :{tag:'PLANOS OLUNE',title:'Escolha o plano da sua empresa.',text:'Tudo do OLUNE em todos os planos. Quanto maior o período, menor o valor por mês.'};
+  const status=access?.status==='active'&&access.paidUntil?<p className="ol-plans-status">Plano ativo até <b>{new Date(access.paidUntil).toLocaleDateString('pt-BR')}</b></p>
+    :isTrialing(access)?<p className="ol-plans-status">Teste grátis: <b>{daysText(daysLeft(access))}</b></p>:null;
+  if(!admin)return <div className="ol-plans ol-plans-embedded"><div className="ol-plans-intro"><span className="pn-tag">PLANOS OLUNE</span><h1>Plano da empresa</h1><p>A assinatura do OLUNE é gerenciada pelo RH da sua empresa.</p>{status}</div></div>;
   const body=<>
-    <div className="ol-plans-intro"><span className="pn-tag">PLANOS OLUNE</span><h1>Escolha o plano da sua empresa.</h1><p>Tudo do OLUNE em todos os planos. Quanto maior o período, menor o valor por mês.</p></div>
+    <div className="ol-plans-intro"><span className="pn-tag">{intro.tag}</span><h1>{intro.title}</h1><p>{intro.text}</p>{embedded&&status}</div>
     <PlanCards selected={selected} onSelect={setSelected}/>
     <div className="ol-plans-bottom">
       <ul className="ol-plans-features">{FEATURES.map(f=><li key={f}><Check size={14}/>{f}</li>)}</ul>
       <div className="ol-plans-cta">
         <div><span className="pn-label">PLANO ESCOLHIDO</span><b>{plan.name} · {brl(plan.perMonth)}/mês</b><small>{plan.months===1?'Total: '+brl(plan.total)+' por mês':'Total: '+brl(plan.total)+' por '+plan.months+' meses'}</small></div>
         <button className="pn-button pn-full" onClick={confirm}>{embedded?'Selecionar plano':'Continuar com o plano '+plan.name}<ArrowRight size={17}/></button>
-        {onSkip&&<button type="button" className="ol-plans-skip" onClick={onSkip}>Decidir depois</button>}
+        {onSkip&&<button type="button" className="ol-plans-skip" onClick={onSkip}>{expired?'Só consultar meus dados':'Decidir depois'}</button>}
       </div>
     </div>
   </>;
