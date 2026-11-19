@@ -6,6 +6,7 @@ import {installServiceMenus} from './whatsapp-menus.js';
 import {documentError,documentType,normalizeDocument} from '../src/company-document.js';
 import {installBusinessReports} from './business-reports.js';
 import {personalData} from './personal-data.js';
+import {createBilling} from './billing.js';
 import express from 'express';
 import {randomUUID,randomBytes} from 'node:crypto';
 import {fail,digest,token,lookup,day,text,phone,profile,hashPassword,verifyPassword,limiter,publicUser,publicCompany} from './security.js';
@@ -25,7 +26,7 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const validCode=v=>String(v||'').replace(/[^a-z0-9]/gi,'').toUpperCase();
 const reportSafe=r=>({id:r.id,category:r.category,title:r.title,body:r.body,status:r.status,day:r.day,reply:r.reply||'',anonymous:true});
 const feedbackSafe=f=>({id:f.id,rating:f.rating,body:f.body,day:f.day,anonymous:f.anonymous,author:f.author||null});
-export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wellbeingAI,staticPath,publicAppUrl,platformEnv}){
+export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wellbeingAI,staticPath,publicAppUrl,platformEnv,billingEnv}){
  const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
  app.use((req,res,next)=>{res.set({'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','Permissions-Policy':'camera=(self), microphone=(self), geolocation=(self)','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"});if(req.path.startsWith('/api')){
   res.set('Cache-Control','no-store');
@@ -47,12 +48,13 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  const settingsFor=async cid=>platform.resolve(await rawSettingsFor(cid)||{});
  const channels=createChannels({store,secret,gateway});if(gateway)gateway.resolveContext=channels.resolve;
  const companyFor=async id=>{const c=await store.get('company',id,id);if(!c)throw fail(404,'Empresa não encontrada.');return c;};
+ const billing=createBilling({store,secret,companyFor,env:billingEnv||process.env});
  const issue=async(user,remember)=>{const raw=token(),id=lookup(secret,'session',digest(raw));await store.put('session',user.companyId,{userId:user.id,companyId:user.companyId,expiresAt:new Date(Date.now()+(remember?30*86400000:8*3600000)).toISOString()},id,true);return {token:raw,user:publicUser(user)};};
  route('get','/health',async(req,res)=>{const healthy=await store.health();res.status(healthy?200:503).json({service:'OLUNE',version:appVersion,database:healthy});});
  installPublicApp({route,publicAppUrl});
  const badges=createBadgeService({route,store,secret,companyFor,forUser:u=>ensureEmployeeCode(store,secret,u),publicAppUrl,serial:attendanceSerial});
  let attendance,welcome;
- const verification=installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor:channels.connectionFor,getAttendance:()=>attendance});
+ const verification=installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor:channels.connectionFor,getAttendance:()=>attendance,assertWritable:billing.assertWritable});
  const authLimit=limiter(20,900000);
  route('post','/auth/register',authLimit,async(req,res)=>{const p=profile(req.body),passwordHash=await hashPassword(req.body.password),id=lookup(secret,'email',p.email);if(await store.get('user',id))throw fail(409,'Não foi possível cadastrar. Se já tem uma conta, faça login.');const photo=req.body.photo?await normalizeIdentityImage(req.body.photo):null;const isAdmin=req.body.mode==='company';let c,codeId;
  if(isAdmin){const problem=documentError(req.body.document);if(problem)throw fail(400,problem);const companyId='moodcorp:'+randomUUID(),code=randomBytes(5).toString('hex').toUpperCase();c={id:companyId,document:normalizeDocument(req.body.document),documentType:documentType(req.body.document),name:text(req.body.companyName,2,120),sector:text(req.body.sector||'Serviços',2,100),attendanceMethod:validMethod(req.body.attendanceMethod||'code'),code,createdAt:new Date().toISOString()};codeId=lookup(secret,'code',code);await store.put('company',companyId,c,companyId,true);try{await store.put('code',companyId,{companyId},codeId,true);}catch(e){await store.remove('company',companyId,companyId);throw e;}}
@@ -60,10 +62,13 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  if(!isAdmin){p.departmentId=c.invitedDepartment?.id||null;p.department=c.invitedDepartment?.name||'Geral';}
  const user={...p,id,companyId:c.id,role:isAdmin?'admin':'employee',active:true,passwordHash,shareMood:false,aiConsent:req.body.aiConsent===true,whatsappConsent:true,welcomeRequested:!isAdmin,createdAt:new Date().toISOString()};
  let photoId;try{photoId=await badges.addRegistrationPhoto(user,photo);await store.put('user',c.id,user,id,true);}catch(e){if(photoId)await store.remove('identity-image',photoId,c.id);if(isAdmin){await store.remove('code',codeId,c.id);await store.remove('company',c.id,c.id);}throw e;}
+ if(isAdmin)await billing.record(c.id);
  const registered=await ensureEmployeeCode(store,secret,user);if(!isAdmin){try{await welcome.enqueue(registered);welcome.kick();}catch{console.warn('Mensagem de boas-vindas aguardando preparação.');}}res.status(201).json(await issue(registered,req.body.remember===true));});
  route('post','/auth/login',authLimit,async(req,res)=>{const email=String(req.body.email||'').trim().toLowerCase(),u=await store.get('user',lookup(secret,'email',email));if(!await verifyPassword(req.body.password,u?.passwordHash)||!u?.active)throw fail(401,'E-mail ou senha incorretos.');res.json(await issue(await ensureEmployeeCode(store,secret,u),req.body.remember===true));});
  route('post','/reports/lookup',limiter(20,900000),async(req,res)=>{const capability=String(req.body.protocol||'').trim();if(!/^[\w-]{43}$/.test(capability))throw fail(404,'Protocolo não encontrado.');const r=await store.get('report',lookup(secret,'report',digest(capability)));if(!r)throw fail(404,'Protocolo não encontrado.');res.json(reportSafe(r));});
  app.use('/api',wrap(auth),limiter(600));authenticatedRoutes=true;
+ // Teste grátis vencido sem plano: empresa em somente leitura (ver server/billing.js).
+ app.use('/api',wrap(billing.guard));billing.install(route);
  badges.installAuthenticated(admin);channels.install(route,admin);
  installBusinessReports({route,store,admin,companyFor,channels});
  installOnboarding({route,store,admin,channels,gateway,platform});installBoards({route,store,secret});
@@ -77,7 +82,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  route('post','/profile/whatsapp/request',async(req,res)=>{if(!gateway?.sendText||(await gateway.status(req.user.companyId)).status!=='connected')throw fail(409,'O RH precisa conectar o WhatsApp da empresa primeiro.');await verification.sendOTP('verify',req.user);res.json({ok:true});});
  route('post','/profile/whatsapp/verify',async(req,res)=>{await verification.consume('verify',req.user.email,req.body.code,async u=>{if((await store.list('user',u.companyId)).some(other=>other.id!==u.id&&other.whatsappJid===u.phone+'@s.whatsapp.net'))throw fail(409,'Este WhatsApp já está vinculado a outra conta. Procure o RH.');u.phoneVerified=true;u.whatsappConsent=true;u.whatsappJid=u.phone+'@s.whatsapp.net';await store.put('user',u.companyId,u,u.id);});res.json({ok:true});});
  route('post','/auth/logout',async(req,res)=>{await store.remove('session',req.sessionId,req.user.companyId);res.json({ok:true});});
- route('get','/bootstrap',async(req,res)=>{const u=await ensureEmployeeCode(store,secret,req.user),c=await companyFor(u.companyId);if(u.welcomeRequested){try{await welcome.enqueue(u);welcome.kick();}catch{}}const own=await store.list('checkin',c.id,{owner:u.id,limit:400});const settings=await settingsFor(c.id);res.json({user:{...publicUser(u),...await peoplePermissions.caps(u),whatsappAgent:(await channels.authorized(u)).length>0},company:publicCompany(c),checkins:own.sort((a,b)=>b.day.localeCompare(a.day)),aiAvailable:!!(settings?.enabled&&settings?.apiKey),platform:platform.safe(),onboardingRequired:req.user.role==='admin'?!c.onboarding?.completed:!u.onboarding?.completed});});
+ route('get','/bootstrap',async(req,res)=>{const u=await ensureEmployeeCode(store,secret,req.user),c=await companyFor(u.companyId);if(u.welcomeRequested){try{await welcome.enqueue(u);welcome.kick();}catch{}}const own=await store.list('checkin',c.id,{owner:u.id,limit:400});const settings=await settingsFor(c.id);res.json({user:{...publicUser(u),...await peoplePermissions.caps(u),whatsappAgent:(await channels.authorized(u)).length>0},company:publicCompany(c),checkins:own.sort((a,b)=>b.day.localeCompare(a.day)),aiAvailable:!!(settings?.enabled&&settings?.apiKey),platform:platform.safe(),onboardingRequired:req.user.role==='admin'?!c.onboarding?.completed:!u.onboarding?.completed,access:await billing.status(c.id)});});
  route('patch','/profile',async(req,res)=>attendanceSerial('user-edit:'+req.user.id,async()=>{const current=await store.get('user',req.user.id,req.user.companyId),u=await personalData(store,current,req.body);for(const k of ['shareMood','aiConsent','whatsappConsent','wellbeingWhatsappConsent'])if(req.body[k]!==undefined)u[k]=req.body[k]===true;await store.put('user',u.companyId,u,u.id);if(current.phone!==u.phone||!u.whatsappConsent||!u.wellbeingWhatsappConsent||!u.aiConsent)await hub.wellbeing.stop(u.companyId,u.id);res.json(publicUser(u));}));
  route('post','/auth/password',async(req,res)=>{const u=req.user;if(!await verifyPassword(req.body.currentPassword,u.passwordHash))throw fail(400,'Senha atual incorreta.');u.passwordHash=await hashPassword(req.body.password);await store.put('user',u.companyId,u,u.id);for(const s of await store.list('session',u.companyId))if(s.userId===u.id&&s.id!==req.sessionId)await store.remove('session',s.id,u.companyId);res.json({ok:true});});
  route('post','/checkins',limiter(20,60000),async(req,res)=>{const mood=Number(req.body.mood);if(!Number.isInteger(mood)||mood<1||mood>5)throw fail(400,'Escolha como você está se sentindo.');const u=req.user,when=day(),id=lookup(secret,'checkin',u.id,when);const entry={owner:u.id,day:when,mood,note:text(req.body.note||'',0,1500),shared:req.body.shared===true,source:'app',at:new Date().toISOString()};await store.put('checkin',u.companyId,entry,id);res.json({...entry,id});});
