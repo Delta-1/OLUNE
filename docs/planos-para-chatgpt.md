@@ -48,3 +48,10 @@ Os valores são calculados em `src/plans.tsx` a partir de `BASE = 200` e do desc
 - `server/billing.js`: `POST /api/billing/checkout` (só admin) cria a cobrança no HubCash. O mensal é uma assinatura de R$ 200/mês; o semestral (R$ 1.140) e o anual (R$ 2.160) são pagamento único com Pix, boleto ou cartão em até 12x. `GET /api/billing/subscription` devolve o status. `POST /api/billing/hubcash` recebe o webhook assinado do HubCash e ativa o plano (`paidUntil`).
 - Variáveis no Railway do OLUNE: `HUBCASH_URL`, `HUBCASH_API_KEY` e `HUBCASH_WEBHOOK_SECRET` (gerados no painel do HubCash › Apps). O webhook do app no HubCash é `{OLUNE}/api/billing/hubcash`.
 - Sem essas variáveis, a tela de planos continua em modo demonstração.
+
+## Atualização: licença com teste grátis de 7 dias
+- `server/billing.js`: cada empresa ganha 7 dias de teste no primeiro acesso (inclusive as que já existiam, contando a partir desta versão). Fases: `trial` → `active` (pago) → `grace` (venceu, 3 dias de tolerância) → `blocked`.
+- Bloqueada: toda escrita (POST/PATCH/DELETE) é recusada com 403, exceto `/billing`, `/auth` e `/profile`; consultas e relatórios (GET) continuam. O totem também para de registrar ponto.
+- Desconto de 5% para quem paga antes de vencer (teste ou licença ativa). O período pago começa depois do que ainda resta, sem perder dias.
+- Telas (`src/license.tsx`): ativação do teste na primeira entrada do admin, selo "Teste grátis · N dias" no topo, aviso no canto superior direito (volta a cada abertura), pagamento com QR Code Pix na própria tela, tela de bloqueio com "Continuar só com os relatórios" e faixa de aviso para todos.
+- Rotas: `GET /api/billing/license`, `POST /api/billing/license/seen`, `POST /api/billing/checkout` (só admin).

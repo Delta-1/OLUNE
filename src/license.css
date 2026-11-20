@@ -1,0 +1,55 @@
+/* Licença: segue os tokens do OLUNE (.pn) */
+.ol-boot{min-height:100dvh;display:grid;place-items:center;padding:32px max(16px,env(safe-area-inset-left,0px));background:radial-gradient(ellipse at 50% 35%,#7953c222,transparent 60%),var(--pn-bg)}
+.ol-boot-inner{max-width:520px;width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}
+.ol-boot h1{font-size:clamp(26px,4vw,36px);font-weight:500;letter-spacing:-1px;line-height:1.2;text-wrap:balance}
+.ol-boot h1 span{color:var(--pn-accent)}
+.ol-boot-step{color:var(--pn-muted);min-height:21px}
+.ol-boot-bar{width:min(320px,100%);height:4px;border-radius:4px;background:var(--pn-border);overflow:hidden}
+.ol-boot-bar i{display:block;height:100%;background:var(--pn-accent);transition:width .9s ease}
+.ol-boot-copy{color:#cfcdd8;max-width:40ch}
+.ol-boot .pn-button{min-width:200px}
+.ol-trial-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #74618a66;background:#a68bfa14;color:#c9b8ff;border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ol-trial-badge:hover{background:#a68bfa26}
+.ol-notice{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));z-index:60;width:min(340px,calc(100vw - 32px));background:#1c1a24;border:1px solid #3a3446;border-left:3px solid var(--pn-accent);border-radius:14px;padding:16px 16px 14px;box-shadow:0 18px 50px #0007;display:flex;flex-direction:column;gap:6px;animation:olNotice .35s ease-out both}
+.ol-notice.urgent{border-left-color:#ff9b8f}
+.ol-notice b{font-size:15px;padding-right:22px}
+.ol-notice p{color:#bdbbc8;font-size:13px}
+.ol-notice .pn-button{align-self:flex-start;margin:6px 0 0;min-height:36px;font-size:12px;padding:8px 13px}
+.ol-notice-x{position:absolute;top:10px;right:10px;background:none;border:0;color:var(--pn-muted);cursor:pointer;padding:4px;border-radius:6px}
+.ol-notice-x:hover{color:var(--pn-text);background:#ffffff10}
+@keyframes olNotice{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ol-notice{animation:none}.ol-boot-bar i{transition:none}}
+.ol-blocked-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #ff9b8f55;background:#ff9b8f12;color:#ffc2bb;border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:13px}
+.ol-blocked-banner span{flex:1;min-width:200px}
+.ol-blocked-banner .pn-button{margin:0;min-height:34px;font-size:12px;padding:8px 13px}
+.ol-pay{display:flex;flex-direction:column;gap:14px;width:100%}
+.ol-pay-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ol-pay-plan{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--pn-border);background:#18171f;border-radius:14px;padding:14px;color:var(--pn-text);cursor:pointer;font:inherit}
+.ol-pay-plan.on{border-color:var(--pn-accent);box-shadow:0 0 0 3px #a68bfa22}
+.ol-pay-plan b{font-size:22px;font-weight:600;letter-spacing:-.5px;margin-top:4px}
+.ol-pay-plan s{color:var(--pn-muted);font-size:12px}
+.ol-pay-plan small{color:var(--pn-muted);font-size:12px}
+.ol-pay-off{display:flex;align-items:center;gap:6px;color:var(--pn-green);font-size:13px}
+.ol-pay-note,.ol-pay-secure{color:var(--pn-muted);font-size:12px;display:flex;align-items:center;gap:6px}
+.ol-pay-error{color:#ff9b8f;font-size:13px}
+.ol-pay .pn-button.pn-full{width:100%;margin:0;min-height:46px;font-size:13px}
+.ol-pay-qr{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.ol-pay-amount{font-size:34px;font-weight:600;letter-spacing:-1px}
+.ol-pay-qr img{width:min(260px,100%);border-radius:12px;background:#fff;padding:8px}
+.ol-pay-hint{color:#cfcdd8;font-size:13px;max-width:36ch}
+.ol-pay-wait{display:flex;align-items:center;gap:8px;color:#f2c46d;font-size:13px;font-weight:600}
+.ol-pay-wait i{width:8px;height:8px;border-radius:50%;background:#f2c46d;animation:olPulse 1.4s ease-in-out infinite}
+@keyframes olPulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.ol-pay-wait i{animation:none}}
+.ol-pay-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ol-pay-actions .pn-button{margin:0;text-decoration:none}
+.ol-pay-back,.ol-locked-ro{background:none;border:0;color:var(--pn-muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:6px}
+.ol-pay-done{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:12px 0}
+.ol-pay-done span{width:64px;height:64px;border-radius:50%;background:#80d6b01c;color:var(--pn-green);display:grid;place-items:center}
+.ol-locked{min-height:100dvh;display:grid;place-items:center;padding:32px max(16px,env(safe-area-inset-left,0px))}
+.ol-locked-inner{max-width:620px;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.ol-locked-icon{width:56px;height:56px;border-radius:16px;background:#ff9b8f14;color:#ff9b8f;display:grid;place-items:center}
+.ol-locked h1{font-size:clamp(24px,4vw,32px);font-weight:500;letter-spacing:-1px}
+.ol-locked-inner>p{color:#bdbbc8;max-width:48ch}
+.ol-license-panel{max-width:720px}
+@media(max-width:640px){.ol-pay-plans{grid-template-columns:1fr}}
