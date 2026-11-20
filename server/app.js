@@ -14,6 +14,7 @@ import {createPlatformAI} from './platform.js';
 import {createChannels} from './channels.js';
 import {installPublicApp,installOnboarding,appVersion} from './onboarding.js';
 import {installBilling} from './billing.js';
+import {installLinky} from './linky.js';
 import {installBoards} from './boards.js';
 import {installEmployeeFiles} from './employee-files.js';
 import {installWhatsAppInbox} from './whatsapp-inbox.js';
@@ -26,7 +27,7 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const validCode=v=>String(v||'').replace(/[^a-z0-9]/gi,'').toUpperCase();
 const reportSafe=r=>({id:r.id,category:r.category,title:r.title,body:r.body,status:r.status,day:r.day,reply:r.reply||'',anonymous:true});
 const feedbackSafe=f=>({id:f.id,rating:f.rating,body:f.body,day:f.day,anonymous:f.anonymous,author:f.author||null});
-export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wellbeingAI,staticPath,publicAppUrl,platformEnv}){
+export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wellbeingAI,staticPath,publicAppUrl,platformEnv,linkyClient}){
  const app=express();app.disable('x-powered-by');app.set('trust proxy',1);
  app.use((req,res,next)=>{res.set({'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','Permissions-Policy':'camera=(self), microphone=(self), geolocation=(self)','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"});if(req.path.startsWith('/api')){
   res.set('Cache-Control','no-store');
@@ -64,6 +65,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  let photoId;try{photoId=await badges.addRegistrationPhoto(user,photo);await store.put('user',c.id,user,id,true);}catch(e){if(photoId)await store.remove('identity-image',photoId,c.id);if(isAdmin){await store.remove('code',codeId,c.id);await store.remove('company',c.id,c.id);}throw e;}
  const registered=await ensureEmployeeCode(store,secret,user);if(!isAdmin){try{await welcome.enqueue(registered);welcome.kick();}catch{console.warn('Mensagem de boas-vindas aguardando preparação.');}}res.status(201).json(await issue(registered,req.body.remember===true));});
  route('post','/auth/login',authLimit,async(req,res)=>{const email=String(req.body.email||'').trim().toLowerCase(),u=await store.get('user',lookup(secret,'email',email));if(!await verifyPassword(req.body.password,u?.passwordHash)||!u?.active)throw fail(401,'E-mail ou senha incorretos.');res.json(await issue(await ensureEmployeeCode(store,secret,u),req.body.remember===true));});
+ installLinky({route,store,secret,issue:async(u,remember)=>issue(await ensureEmployeeCode(store,secret,u),remember),env:platformEnv||process.env,client:linkyClient});
  route('post','/reports/lookup',limiter(20,900000),async(req,res)=>{const capability=String(req.body.protocol||'').trim();if(!/^[\w-]{43}$/.test(capability))throw fail(404,'Protocolo não encontrado.');const r=await store.get('report',lookup(secret,'report',digest(capability)));if(!r)throw fail(404,'Protocolo não encontrado.');res.json(reportSafe(r));});
  app.use('/api',wrap(auth),limiter(600));authenticatedRoutes=true;
  app.use('/api',wrap(billing.guard));
