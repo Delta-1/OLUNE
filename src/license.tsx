@@ -1,12 +1,12 @@
 // Licença do OLUNE na tela: ativação do teste, aviso de dias, selo de teste, pagamento e bloqueio.
 import React,{useEffect,useRef,useState} from 'react';
 import QRCode from 'qrcode';
-import {Check,X,Sparkles,ShieldCheck,Lock,ArrowRight,ExternalLink,Copy,FileText} from 'lucide-react';
+import {Check,X,Sparkles,ShieldCheck,Lock,ArrowRight,ExternalLink,Copy,FileText,CreditCard,Repeat} from 'lucide-react';
 import {BrandLogo} from './brand';
 import {api} from './api';
 import './license.css';
 
-export type License={phase:'trial'|'active'|'grace'|'blocked',expiresAt:string|null,daysLeft:number,graceDaysLeft:number,notice:null|'trial'|'renew'|'grace'|'blocked',blocked:boolean,plan:string|null,planName:string|null,trialEndsAt:string|null,paidUntil:string|null,activationSeen:boolean,earlyDiscount:number,configured:boolean,prices?:{id:string,name:string,months:number,total:number,price:number}[],pending?:{plan:string,checkoutUrl:string,amount:number}|null};
+export type License={phase:'trial'|'active'|'grace'|'blocked',expiresAt:string|null,daysLeft:number,graceDaysLeft:number,notice:null|'trial'|'renew'|'grace'|'blocked',blocked:boolean,plan:string|null,planName:string|null,trialEndsAt:string|null,paidUntil:string|null,activationSeen:boolean,earlyDiscount:number,configured:boolean,prices?:{id:string,name:string,months:number,total:number,price:number}[],pending?:{plan:string,checkoutUrl:string,amount:number,auto?:boolean}|null,autoRenew?:null|'pending'|'active'|'failed'|'canceled',autoAmount?:number|null};
 
 const brl=(v:number)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const dm=(iso?:string|null)=>iso?new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'';
@@ -60,12 +60,21 @@ export function BlockedBanner({admin,onPay}:{admin:boolean,onPay:()=>void}){
 // Escolha do plano e pagamento por Pix/cartão (QR Code na tela), acompanhando até ativar.
 export function PayLicense({license,onPaid,compact=false}:{license:License,onPaid:(l:License)=>void,compact?:boolean}){
   const prices=license.prices||[];
-  const [plan,setPlan]=useState(license.plan||'annual'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[pay,setPay]=useState<{url:string,amount:number,qr:string}|null>(null),[done,setDone]=useState<License|null>(null);
-  const before=useRef(license.paidUntil);
-  useEffect(()=>{if(!pay)return;const t=setInterval(async()=>{try{const l=await api<License>('/billing/license');if(l.paidUntil&&l.paidUntil!==before.current&&(l.phase==='active')){clearInterval(t);setDone(l);onPaid(l);}}catch{}},5000);return()=>clearInterval(t);},[pay]);
-  const start=async()=>{setBusy(true);setError('');try{const out=await api<{url:string,amount:number}>('/billing/checkout',{planId:plan});setPay({...out,qr:await QRCode.toDataURL(out.url,{margin:1,width:480})});}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  const [plan,setPlan]=useState(license.plan||'annual'),[auto,setAuto]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[pay,setPay]=useState<{url:string,amount:number,qr:string,auto?:boolean}|null>(null),[done,setDone]=useState<License|null>(null);
+  const before=useRef(license.paidUntil),wasAuto=useRef(license.autoRenew);
+  useEffect(()=>{if(!pay)return;const t=setInterval(async()=>{try{const l=await api<License>('/billing/license');if((l.paidUntil&&l.paidUntil!==before.current&&l.phase==='active')||(pay.auto&&l.autoRenew==='active'&&wasAuto.current!=='active')){clearInterval(t);setDone(l);onPaid(l);}}catch{}},5000);return()=>clearInterval(t);},[pay]);
+  const useAuto=plan==='monthly'&&auto;
+  const start=async()=>{setBusy(true);setError('');try{const out=await api<{url:string,amount:number,auto?:boolean}>('/billing/checkout',{planId:plan,...(useAuto?{auto:true}:{})});if(out.auto)window.open(out.url,'_blank','noopener');setPay({...out,qr:out.auto?'':await QRCode.toDataURL(out.url,{margin:1,width:480})});}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
   const sel=prices.find(p=>p.id===plan);
-  if(done)return <div className="ol-pay-done"><span><Check size={34}/></span><h2>Licença ativa</h2><p>Plano {done.planName} pago. Tudo liberado até <b>{new Date(done.paidUntil!).toLocaleDateString('pt-BR')}</b>.</p></div>;
+  if(done)return <div className="ol-pay-done"><span><Check size={34}/></span><h2>{done.autoRenew==='active'?'Assinatura ativa':'Licença ativa'}</h2><p>{done.autoRenew==='active'?<>O cartão será cobrado todo mês automaticamente. {done.paidUntil&&<>Liberado até <b>{new Date(done.paidUntil).toLocaleDateString('pt-BR')}</b>.</>}</>:<>Plano {done.planName} pago. Tudo liberado até <b>{new Date(done.paidUntil!).toLocaleDateString('pt-BR')}</b>.</>}</p></div>;
+  if(pay?.auto)return <div className="ol-pay-qr">
+    <span className="ol-pay-cardicon"><CreditCard size={28}/></span>
+    <p className="pn-label">ASSINATURA AUTOMÁTICA</p><b className="ol-pay-amount">{brl(pay.amount)}<small>/mês</small></b>
+    <p className="ol-pay-hint">Abrimos a página segura do Mercado Pago em outra aba. Cadastre o cartão lá. Depois, a cobrança é feita sozinha todo mês.</p>
+    <p className="ol-pay-wait"><i/>Aguardando o cadastro do cartão…</p>
+    <div className="ol-pay-actions"><a className="pn-button" href={pay.url} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Abrir página do cartão</a></div>
+    <button className="ol-pay-back" onClick={()=>setPay(null)}>Escolher outra forma</button>
+  </div>;
   if(pay)return <div className="ol-pay-qr">
     <p className="pn-label">PLANO {sel?.name.toUpperCase()}</p><b className="ol-pay-amount">{brl(pay.amount)}</b>
     <img src={pay.qr} alt="QR Code para pagar"/>
@@ -80,10 +89,14 @@ export function PayLicense({license,onPaid,compact=false}:{license:License,onPai
       <b>{brl(p.price)}</b>{p.price<p.total&&<s>{brl(p.total)}</s>}
       <small>{p.months===1?'por 1 mês':`${p.months} meses · ${brl(p.price/p.months)}/mês`}</small>
     </button>)}</div>
-    {license.earlyDiscount>0&&<p className="ol-pay-off"><Sparkles size={14}/> {Math.round(license.earlyDiscount*100)}% de desconto por pagar antes de vencer.</p>}
+    {plan==='monthly'&&<div className="ol-pay-modes" role="radiogroup" aria-label="Forma do mensal">
+      <button role="radio" aria-checked={!auto} className={!auto?'on':''} onClick={()=>setAuto(false)}><b>Pagar só este mês</b><small>Pix ou cartão. Renovação manual.</small></button>
+      <button role="radio" aria-checked={auto} className={auto?'on':''} onClick={()=>setAuto(true)}><b><Repeat size={14}/> Assinatura automática</b><small>Cartão de crédito cobrado todo mês. {brl(Math.round((prices.find(p=>p.id==='monthly')?.total||200)*95)/100)}/mês, sempre com 5% off.</small></button>
+    </div>}
+    {license.earlyDiscount>0&&!useAuto&&<p className="ol-pay-off"><Sparkles size={14}/> {Math.round(license.earlyDiscount*100)}% de desconto por pagar antes de vencer.</p>}
     {!license.configured&&<p className="ol-pay-note">Pagamentos em configuração. Fale com a UWY para ativar.</p>}
     {error&&<p className="ol-pay-error" role="alert">{error}</p>}
-    <button className="pn-button pn-full" disabled={busy||!license.configured} onClick={start}>{busy?'Gerando pagamento…':'Pagar com Pix ou cartão'}<ArrowRight size={17}/></button>
+    <button className="pn-button pn-full" disabled={busy||!license.configured} onClick={start}>{busy?'Gerando pagamento…':useAuto?'Cadastrar cartão e assinar':'Pagar com Pix ou cartão'}<ArrowRight size={17}/></button>
     <p className="ol-pay-secure"><ShieldCheck size={13}/> Pagamento pelo Mercado Pago. Pix, cartão de crédito (até 12x) ou débito.</p>
   </div>;
 }
@@ -103,6 +116,10 @@ export function LicenseBlocked({license,onPaid,onReadOnly}:{license:License,onPa
 // Página "Planos" dentro do app.
 export function LicensePage({license,onPaid}:{license:License,onPaid:(l:License)=>void}){
   const status=license.phase==='trial'?`Teste grátis até ${dm(license.expiresAt)} (${days(license.daysLeft)})`:license.phase==='active'?`Plano ${license.planName||''} ativo até ${license.paidUntil?new Date(license.paidUntil).toLocaleDateString('pt-BR'):''}`:license.phase==='grace'?`Venceu em ${dm(license.expiresAt)}. Bloqueia em ${days(license.graceDaysLeft)}.`:'Licença vencida. Ponto e edições pausados.';
+  const [busy,setBusy]=useState(false),[err,setErr]=useState('');
+  const cancel=async()=>{setBusy(true);setErr('');try{onPaid(await api<License>('/billing/subscription/cancel',{}));}catch(e){setErr((e as Error).message);}finally{setBusy(false);}};
   return <><div className="pn-page-title"><div><span className="pn-label">SUA LICENÇA</span><h1>Planos</h1><p>{status}</p></div></div>
-    <section className="pn-panel ol-license-panel"><PayLicense license={license} onPaid={onPaid}/></section></>;
+    {license.autoRenew==='active'&&<section className="pn-panel ol-auto-panel"><Repeat size={20}/><div><b>Assinatura automática ativa</b><p>O cartão é cobrado todo mês ({brl(license.autoAmount||190)}). Você não precisa fazer nada.</p>{err&&<p className="ol-pay-error">{err}</p>}</div><button className="pn-button secondary" disabled={busy} onClick={cancel}>{busy?'Cancelando…':'Cancelar assinatura'}</button></section>}
+    {license.autoRenew==='failed'&&<p className="ol-blocked-banner">A última cobrança no cartão não passou. Pague o mês abaixo ou cadastre outro cartão.</p>}
+    {license.autoRenew!=='active'&&<section className="pn-panel ol-license-panel"><PayLicense license={license} onPaid={onPaid}/></section>}</>;
 }

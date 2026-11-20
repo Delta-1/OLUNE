@@ -15,7 +15,8 @@ async function listen(app){const server=app.listen(0,'127.0.0.1');await new Prom
 
 async function fixture(t,{configured=true}={}){
   const calls=[],hub=express();hub.use(express.json());
-  hub.post('/v1/:kind',(req,res)=>{calls.push({kind:req.params.kind,auth:req.get('authorization'),body:req.body});res.status(201).json({id:'chg_'+calls.length,checkoutUrl:'https://mp.test/pay/'+calls.length,status:'pending'});});
+  hub.post('/v1/subscriptions/:id/cancel',(req,res)=>{calls.push({kind:'cancel',id:req.params.id});res.json({id:req.params.id,status:'canceled'});});
+  hub.post('/v1/:kind',(req,res)=>{calls.push({kind:req.params.kind,auth:req.get('authorization'),body:req.body});const sub=req.params.kind==='subscriptions';res.status(201).json({id:(sub?'sub_':'chg_')+calls.length,object:sub?'subscription':'checkout',checkoutUrl:'https://mp.test/pay/'+calls.length,status:'pending'});});
   const hubServer=await listen(hub);t.after(()=>new Promise(r=>hubServer.close(r)));
   const env=configured?{HUBCASH_URL:'http://127.0.0.1:'+hubServer.address().port,HUBCASH_API_KEY:'hc_test_chave',HUBCASH_WEBHOOK_SECRET:WEBHOOK_SECRET}:{};
   const store=new MemoryStore(),gateway={status:async()=>({status:'disconnected'}),connect:async()=>{},disconnect:async()=>{}};
@@ -86,4 +87,31 @@ test('sem HubCash configurado, o pagamento fica em demonstração',async t=>{
   const out=await f.request('/billing/checkout',{planId:'annual'},f.admin);
   assert.equal(out.status,503);assert.match(out.body.error,/não configurad/);
   assert.equal((await f.request('/billing/license',undefined,f.admin)).body.configured,false);
+});
+
+test('assinatura automática no cartão: cadastra uma vez e cada mês pago estende a licença',async t=>{
+  const f=await fixture(t);
+  assert.equal((await f.request('/billing/checkout',{planId:'annual',auto:true},f.admin)).status,400);
+  const out=await f.request('/billing/checkout',{planId:'monthly',auto:true},f.admin);
+  assert.equal(out.status,200);assert.equal(out.body.auto,true);assert.equal(out.body.amount,190);
+  const call=f.calls.at(-1);assert.equal(call.kind,'subscriptions');assert.equal(call.body.intervalMonths,1);assert.equal(call.body.amount,190);
+  const subId=out.body.subscriptionId;
+  const send=async(type,payments=[])=>{const ev=JSON.stringify({id:'evt_'+Math.random(),type,data:{id:subId,object:'subscription',externalReference:f.companyId,status:'active',payments}});return f.request('/billing/hubcash',ev,'',{'x-hubcash-signature':sign(ev)});};
+  await send('subscription.activated');
+  let l=(await f.request('/billing/license',undefined,f.admin)).body;
+  assert.equal(l.autoRenew,'active');
+  await send('subscription.payment_succeeded',[{id:'p1',status:'paid',amount:190}]);
+  l=(await f.request('/billing/license',undefined,f.admin)).body;
+  const first=Date.parse(l.paidUntil);assert.equal(l.phase,'active');assert.equal(l.plan,'monthly');
+  const d1=(first-Date.now())/DAY;assert.ok(d1>7+27&&d1<7+32,'1 mês depois do teste: '+d1);
+  await send('subscription.payment_succeeded',[{id:'p1',status:'paid',amount:190}]);
+  assert.equal(Date.parse((await f.request('/billing/license',undefined,f.admin)).body.paidUntil),first,'mesmo pagamento não conta duas vezes');
+  await send('subscription.payment_succeeded',[{id:'p1',status:'paid'},{id:'p2',status:'paid'}]);
+  l=(await f.request('/billing/license',undefined,f.admin)).body;
+  assert.ok(Date.parse(l.paidUntil)>first+27*DAY,'mês seguinte somado');
+  // perto de vencer, com assinatura ativa, não mostra aviso de renovação
+  await f.setLicense({paidUntil:new Date(Date.now()+3*DAY).toISOString(),trialEndsAt:new Date(Date.now()-30*DAY).toISOString()});
+  assert.equal((await f.request('/billing/license',undefined,f.admin)).body.notice,null);
+  const c=await f.request('/billing/subscription/cancel',{},f.admin);
+  assert.equal(c.status,200);assert.equal(c.body.autoRenew,'canceled');assert.equal(f.calls.at(-1).kind,'cancel');assert.equal(c.body.notice,'renew');
 });

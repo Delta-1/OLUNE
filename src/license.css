@@ -53,3 +53,16 @@
 .ol-locked-inner>p{color:#bdbbc8;max-width:48ch}
 .ol-license-panel{max-width:720px}
 @media(max-width:640px){.ol-pay-plans{grid-template-columns:1fr}}
+
+.ol-pay-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ol-pay-modes button{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--pn-border);background:#18171f;border-radius:12px;padding:12px;color:var(--pn-text);cursor:pointer;font:inherit}
+.ol-pay-modes button.on{border-color:var(--pn-accent);background:#a68bfa12}
+.ol-pay-modes b{display:flex;align-items:center;gap:6px;font-size:13px}
+.ol-pay-modes small{color:var(--pn-muted);font-size:12px;line-height:1.4}
+.ol-pay-cardicon{width:56px;height:56px;border-radius:16px;background:#a68bfa18;color:var(--pn-accent);display:grid;place-items:center}
+.ol-pay-amount small{font-size:15px;color:var(--pn-muted);font-weight:500;margin-left:2px}
+.ol-auto-panel{display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:720px;margin-bottom:16px}
+.ol-auto-panel>svg{color:var(--pn-green)}
+.ol-auto-panel>div{flex:1;min-width:220px}.ol-auto-panel p{color:var(--pn-muted);font-size:13px}
+.ol-auto-panel .pn-button{margin:0}
+@media(max-width:640px){.ol-pay-modes{grid-template-columns:1fr}}
