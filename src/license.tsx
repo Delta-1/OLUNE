@@ -117,9 +117,36 @@ export function LicenseBlocked({license,onPaid,onReadOnly}:{license:License,onPa
 export function LicensePage({license,onPaid}:{license:License,onPaid:(l:License)=>void}){
   const status=license.phase==='trial'?`Teste grátis até ${dm(license.expiresAt)} (${days(license.daysLeft)})`:license.phase==='active'?`Plano ${license.planName||''} ativo até ${license.paidUntil?new Date(license.paidUntil).toLocaleDateString('pt-BR'):''}`:license.phase==='grace'?`Venceu em ${dm(license.expiresAt)}. Bloqueia em ${days(license.graceDaysLeft)}.`:'Licença vencida. Ponto e edições pausados.';
   const [busy,setBusy]=useState(false),[err,setErr]=useState('');
-  const cancel=async()=>{setBusy(true);setErr('');try{onPaid(await api<License>('/billing/subscription/cancel',{}));}catch(e){setErr((e as Error).message);}finally{setBusy(false);}};
+  const [ask,setAsk]=useState(false);
+  const cancel=async()=>{setBusy(true);setErr('');try{onPaid(await api<License>('/billing/subscription/cancel',{}));setAsk(false);}catch(e){setErr((e as Error).message);}finally{setBusy(false);}};
   return <><div className="pn-page-title"><div><span className="pn-label">SUA LICENÇA</span><h1>Planos</h1><p>{status}</p></div></div>
-    {license.autoRenew==='active'&&<section className="pn-panel ol-auto-panel"><Repeat size={20}/><div><b>Assinatura automática ativa</b><p>O cartão é cobrado todo mês ({brl(license.autoAmount||190)}). Você não precisa fazer nada.</p>{err&&<p className="ol-pay-error">{err}</p>}</div><button className="pn-button secondary" disabled={busy} onClick={cancel}>{busy?'Cancelando…':'Cancelar assinatura'}</button></section>}
+    {license.autoRenew==='active'&&<section className="pn-panel ol-auto-panel"><Repeat size={20}/><div><b>Assinatura automática ativa</b><p>O cartão é cobrado todo mês ({brl(license.autoAmount||190)}). Você não precisa fazer nada.</p>{err&&<p className="ol-pay-error">{err}</p>}</div>{!ask?<button className="pn-button secondary" onClick={()=>setAsk(true)}>Cancelar assinatura</button>:<div className="ol-plat-confirm"><span>Ao cancelar, o cartão não é mais cobrado e você continua usando até {license.paidUntil?new Date(license.paidUntil).toLocaleDateString('pt-BR'):'o fim do período pago'}. Não há devolução do que já foi pago.</span><button className="pn-button" disabled={busy} onClick={cancel}>{busy?'Cancelando…':'Confirmar cancelamento'}</button><button className="pn-button secondary" onClick={()=>setAsk(false)}>Manter assinatura</button></div>}</section>}
+    {license.autoRenew==='canceled'&&license.phase==='active'&&<p className="pn-small">Assinatura cancelada. Você continua usando até {license.paidUntil?new Date(license.paidUntil).toLocaleDateString('pt-BR'):''}.</p>}
     {license.autoRenew==='failed'&&<p className="ol-blocked-banner">A última cobrança no cartão não passou. Pague o mês abaixo ou cadastre outro cartão.</p>}
     {license.autoRenew!=='active'&&<section className="pn-panel ol-license-panel"><PayLicense license={license} onPaid={onPaid}/></section>}</>;
+}
+
+// Painel do dono (UWY): todas as empresas e as ações de licença.
+type Row=License&{companyId:string,name:string,createdAt:string|null,people:number,admins:{name:string,email:string}[],started:boolean,history:{at:string,by:string,action:string,days?:number}[]};
+const PHASE:Record<string,[string,string]>={not_started:['Teste ainda não começou','trial'],trial:['Teste grátis','trial'],active:['Ativa','active'],grace:['Vencida (tolerância)','grace'],blocked:['Bloqueada','blocked']};
+export function PlatformLicenses({notify}:{notify:(t:string)=>void}){
+  const [rows,setRows]=useState<Row[]|null>(null),[error,setError]=useState(''),[q,setQ]=useState(''),[busy,setBusy]=useState(''),[confirm,setConfirm]=useState<{row:Row,action:string,days?:number}|null>(null);
+  const load=()=>api<{data:Row[]}>('/platform/licenses').then(d=>setRows(d.data)).catch(e=>setError(e.message));
+  useEffect(()=>{load();},[]);
+  const run=async(row:Row,action:string,days?:number)=>{setBusy(row.companyId+action);setError('');try{await api('/platform/licenses/'+encodeURIComponent(row.companyId),{action,...(days?{days}:{})});notify(action==='extend'?`${row.name}: +${days} dias.`:action==='block'?`${row.name} bloqueada.`:`Assinatura de ${row.name} cancelada.`);setConfirm(null);load();}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+  const list=(rows||[]).filter(r=>!q||(r.name+' '+r.admins.map(a=>a.email).join(' ')).toLowerCase().includes(q.toLowerCase()));
+  const count=(p:string)=>(rows||[]).filter(r=>r.phase===p).length;
+  return <><div className="pn-page-title"><div><span className="pn-label">ADMINISTRAÇÃO UWY</span><h1>Licenças</h1><p>Todas as empresas que usam o OLUNE. Só a sua conta vê esta página.</p></div></div>
+    {error&&<p className="pn-alert" role="alert">{error}</p>}
+    {rows&&<div className="ol-plat-stats">{[['Empresas',rows.length],['Teste grátis',count('trial')],['Pagantes',count('active')],['Vencidas',count('grace')],['Bloqueadas',count('blocked')]].map(([l,v])=><div key={l as string}><span>{l}</span><b>{v}</b></div>)}</div>}
+    <input className="ol-plat-search" placeholder="Buscar empresa ou e-mail" value={q} onChange={e=>setQ(e.target.value)} aria-label="Buscar empresa"/>
+    {!rows?<p className="pn-small">Carregando…</p>:<div className="ol-plat-list">{list.map(r=>{const [label,tone]=PHASE[r.phase];return <article key={r.companyId} className="pn-panel ol-plat-row">
+      <div className="ol-plat-main"><b>{r.name}</b><small>{r.admins.map(a=>a.email).join(' · ')||'sem admin'} · {r.people} pessoa{r.people===1?'':'s'}</small></div>
+      <div className="ol-plat-state"><span className={'ol-plat-pill '+tone}>{label}</span><small>{!r.started?'Os 7 dias começam no primeiro acesso':r.phase==='blocked'?`Venceu em ${r.expiresAt?new Date(r.expiresAt).toLocaleDateString('pt-BR'):'—'}`:`Até ${r.expiresAt?new Date(r.expiresAt).toLocaleDateString('pt-BR'):'—'} (${days(r.daysLeft)})`}{r.planName?' · '+r.planName:''}{r.autoRenew==='active'?' · cartão automático':''}</small></div>
+      <div className="ol-plat-actions">{[7,30,90,365].map(d=><button key={d} className="pn-button secondary" disabled={!!busy} onClick={()=>run(r,'extend',d)}>+{d===365?'1 ano':d+' dias'}</button>)}
+        {r.autoRenew==='active'&&<button className="pn-button secondary" disabled={!!busy} onClick={()=>setConfirm({row:r,action:'cancel-auto'})}>Cancelar assinatura</button>}
+        {!['blocked','not_started'].includes(r.phase)&&<button className="pn-button secondary ol-plat-danger" disabled={!!busy} onClick={()=>setConfirm({row:r,action:'block'})}>Bloquear</button>}</div>
+      {confirm?.row.companyId===r.companyId&&<div className="ol-plat-confirm"><span>{confirm.action==='block'?`Bloquear ${r.name} agora? O ponto e as edições param na hora.`:`Cancelar a assinatura automática de ${r.name}? A empresa continua usando até ${r.expiresAt?new Date(r.expiresAt).toLocaleDateString('pt-BR'):'o fim do período pago'}. Não há devolução.`}</span><button className="pn-button" disabled={!!busy} onClick={()=>run(r,confirm.action)}>Confirmar</button><button className="pn-button secondary" onClick={()=>setConfirm(null)}>Voltar</button></div>}
+    </article>;})}</div>}
+  </>;
 }

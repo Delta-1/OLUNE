@@ -41,7 +41,7 @@ export function licenseState(b,now=Date.now()){
   const early=phase==='trial'||phase==='active';
   const auto=b?.autoRenew==='active';
   const notice=phase==='trial'?'trial':phase==='active'&&daysLeft<=NOTICE_DAYS&&!auto?'renew':phase==='grace'?'grace':phase==='blocked'?'blocked':null;
-  return {phase,expiresAt,daysLeft,graceDaysLeft,notice,blocked:phase==='blocked',plan:b?.plan||null,planName:PLANS[b?.plan]?.name||null,
+  return {phase,expiresAt,daysLeft,graceDaysLeft,notice,blocked:phase==='blocked',plan:b?.plan||null,planName:PLANS[b?.plan]?.name||(b?.plan==='courtesy'?'Cortesia':null),
     trialEndsAt:b?.trialEndsAt||null,paidUntil:b?.paidUntil||null,activationSeen:!!b?.activationSeen,earlyDiscount:early?EARLY_DISCOUNT:0,
     prices:Object.values(PLANS).map(p=>({id:p.id,name:p.name,months:p.months,total:p.total,price:early?Math.round(p.total*(1-EARLY_DISCOUNT)*100)/100:p.total})),
     pending:b?.status==='pending'?{plan:b.plan,checkoutUrl:b.checkoutUrl,amount:b.amount,auto:!!b.pendingAuto}:null,
@@ -103,7 +103,7 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
 
   // Depois do login: com a licença bloqueada, só leitura (relatórios, consultas) e o próprio pagamento.
   const guard=async(req,res,next)=>{
-    if(req.method==='GET'||/^\/(billing|auth|profile)(\/|$)/.test(req.path))return next();
+    if(req.method==='GET'||/^\/(billing|auth|profile|platform)(\/|$)/.test(req.path))return next();
     if((await license(req.user.companyId)).blocked)return res.status(403).json({error:req.user.role==='admin'?'A licença venceu. Renove para voltar a usar o ponto e as edições. Os relatórios continuam disponíveis.':'A licença da empresa venceu. O ponto está pausado. Procure o RH.',license:'blocked'});
     next();
   };
@@ -136,5 +136,38 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
       res.json({url:charge.checkoutUrl,chargeId:charge.id,amount:price});
     });
   };
-  return {webhook,guard,privateRoutes,license};
+  // Painel do dono da plataforma (UWY): todas as empresas, estender, bloquear, cancelar assinatura.
+  const owners=()=>new Set(String(env.OLUNE_OWNER_EMAILS||'').toLowerCase().split(/[,;\s]+/).filter(Boolean));
+  const isOwner=u=>owners().has(String(u?.email||'').toLowerCase());
+  const ownerOnly=(req,res,next)=>isOwner(req.user)?next():res.status(403).json({error:'Somente a administração UWY.'});
+  const ownerRoutes=()=>{
+    route('get','/platform/me',async(req,res)=>res.json({owner:isOwner(req.user)}));
+    route('get','/platform/licenses',ownerOnly,async(req,res)=>{
+      const companies=await store.list('company',undefined,{limit:5000});
+      const rows=await Promise.all(companies.map(async c=>{
+        const b=await read(c.id),users=await store.list('user',c.id,{limit:5000});
+        const admins=users.filter(u=>u.role==='admin'&&u.active!==false).slice(0,3).map(u=>({name:u.name,email:u.email}));
+        return {companyId:c.id,name:c.name,createdAt:c.createdAt||null,people:users.filter(u=>u.active!==false).length,admins,started:!!(b?.trialEndsAt||b?.paidUntil),...licenseState(b,now()),...(b?.trialEndsAt||b?.paidUntil?{}:{phase:'not_started',blocked:false,notice:null}),history:(b?.history||[]).slice(-5)};
+      }));
+      res.json({data:rows.sort((a,b)=>String(a.expiresAt||'').localeCompare(String(b.expiresAt||'')))});
+    });
+    route('post','/platform/licenses/:companyId',ownerOnly,async(req,res)=>{
+      const companyId=String(req.params.companyId),company=await store.get('company',companyId,companyId);if(!company)throw fail(404,'Empresa não encontrada.');
+      const b=await ensure(companyId),t=new Date(now()).toISOString(),action=req.body?.action,entry={at:t,by:req.user.email,action};
+      let next={...b};
+      if(action==='extend'){
+        const days=Math.floor(Number(req.body?.days));if(!(days>=1&&days<=3650))throw fail(400,'Escolha de 1 a 3650 dias.');
+        next.paidUntil=new Date(Date.parse(maxIso(t,b.paidUntil,b.trialEndsAt))+days*DAY).toISOString();
+        if(!PLANS[b.plan])next.plan='courtesy';next.status='active';entry.days=days;
+      }else if(action==='block'){
+        const past=new Date(now()-(GRACE_DAYS+1)*DAY).toISOString();next.paidUntil=b.paidUntil?past:null;next.trialEndsAt=past;
+      }else if(action==='cancel-auto'){
+        if(!b.subscriptionId||!['active','pending','failed'].includes(b.autoRenew))throw fail(400,'Esta empresa não tem assinatura automática ativa.');
+        await hubcash(`/v1/subscriptions/${encodeURIComponent(b.subscriptionId)}/cancel`,{},`olune:cancel:${b.subscriptionId}`);next.autoRenew='canceled';next.pendingAuto=false;
+      }else throw fail(400,'Ação inválida.');
+      next.history=[...(b.history||[]),entry].slice(-50);
+      await write(companyId,next);res.json({companyId,...licenseState(next,now())});
+    });
+  };
+  return {webhook,guard,privateRoutes,ownerRoutes,license};
 }

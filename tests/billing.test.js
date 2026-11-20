@@ -13,12 +13,13 @@ const person=(email,extra={})=>({name:'Pessoa Teste',phone:'5568999999999',jobTi
 
 async function listen(app){const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));return server;}
 
-async function fixture(t,{configured=true}={}){
+async function fixture(t,{configured=true,owners=''}={}){
   const calls=[],hub=express();hub.use(express.json());
   hub.post('/v1/subscriptions/:id/cancel',(req,res)=>{calls.push({kind:'cancel',id:req.params.id});res.json({id:req.params.id,status:'canceled'});});
   hub.post('/v1/:kind',(req,res)=>{calls.push({kind:req.params.kind,auth:req.get('authorization'),body:req.body});const sub=req.params.kind==='subscriptions';res.status(201).json({id:(sub?'sub_':'chg_')+calls.length,object:sub?'subscription':'checkout',checkoutUrl:'https://mp.test/pay/'+calls.length,status:'pending'});});
   const hubServer=await listen(hub);t.after(()=>new Promise(r=>hubServer.close(r)));
   const env=configured?{HUBCASH_URL:'http://127.0.0.1:'+hubServer.address().port,HUBCASH_API_KEY:'hc_test_chave',HUBCASH_WEBHOOK_SECRET:WEBHOOK_SECRET}:{};
+  env.OLUNE_OWNER_EMAILS=owners;
   const store=new MemoryStore(),gateway={status:async()=>({status:'disconnected'}),connect:async()=>{},disconnect:async()=>{}};
   const server=await listen(createApp({store,secret,gateway,ai:async()=>'ok',platformEnv:env,publicAppUrl:'https://olune.test'}));t.after(()=>new Promise(r=>server.close(r)));
   const base='http://127.0.0.1:'+server.address().port+'/api';
@@ -28,7 +29,7 @@ async function fixture(t,{configured=true}={}){
   const companyId=reg.body.user.companyId;
   // Ajusta datas da licença direto no banco (simula o tempo passando).
   const setLicense=async patch=>{const id='billing:'+companyId,cur=await store.get('billing',id,companyId);await store.put('billing',companyId,{...cur,...patch},id);};
-  return {calls,request,store,setLicense,admin:reg.body.token,companyId};
+  return {calls,request,store,setLicense,admin:reg.body.token,companyId,register:async(email,companyName)=>(await request('/auth/register',person(email,{mode:'company',document:'11222333000181',companyName,remember:true}))).body};
 }
 const sign=(body,ts=Math.floor(Date.now()/1000))=>`t=${ts},v1=${crypto.createHmac('sha256',WEBHOOK_SECRET).update(ts+'.'+body).digest('hex')}`;
 
@@ -114,4 +115,29 @@ test('assinatura automática no cartão: cadastra uma vez e cada mês pago esten
   assert.equal((await f.request('/billing/license',undefined,f.admin)).body.notice,null);
   const c=await f.request('/billing/subscription/cancel',{},f.admin);
   assert.equal(c.status,200);assert.equal(c.body.autoRenew,'canceled');assert.equal(f.calls.at(-1).kind,'cancel');assert.equal(c.body.notice,'renew');
+});
+
+test('painel do dono: lista todas as empresas, estende, bloqueia; outros admins não acessam',async t=>{
+  const f=await fixture(t,{owners:'dono@uwy.app'});
+  assert.equal((await f.request('/platform/me',undefined,f.admin)).body.owner,false);
+  assert.equal((await f.request('/platform/licenses',undefined,f.admin)).status,403);
+  const owner=await f.register('dono@uwy.app','UWY');
+  assert.equal((await f.request('/platform/me',undefined,owner.token)).body.owner,true);
+  const list=(await f.request('/platform/licenses',undefined,owner.token)).body.data;
+  assert.equal(list.length,2);
+  assert.equal(list.find(c=>c.name==='UWY').phase,'not_started');
+  const cliente=list.find(c=>c.name==='Empresa Teste');assert.equal(cliente.admins[0].email,'rh@empresa.com');
+  // estender 30 dias soma depois do teste
+  let out=(await f.request('/platform/licenses/'+cliente.companyId,{action:'extend',days:30},owner.token)).body;
+  assert.equal(out.phase,'active');assert.equal(out.planName,'Cortesia');
+  const d=(Date.parse(out.expiresAt)-Date.now())/DAY;assert.ok(d>36&&d<38,'7 do teste + 30: '+d);
+  // bloquear agora
+  out=(await f.request('/platform/licenses/'+cliente.companyId,{action:'block'},owner.token)).body;
+  assert.equal(out.phase,'blocked');
+  assert.equal((await f.request('/attendance/punch',{event:'in'},f.admin)).status,403);
+  // reativar
+  out=(await f.request('/platform/licenses/'+cliente.companyId,{action:'extend',days:7},owner.token)).body;
+  assert.equal(out.phase,'active');
+  assert.equal((await f.request('/platform/licenses/'+cliente.companyId,{action:'cancel-auto'},owner.token)).status,400);
+  assert.equal((await f.request('/platform/licenses/'+cliente.companyId,{action:'extend',days:1},f.admin)).status,403);
 });

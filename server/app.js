@@ -67,7 +67,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  route('post','/reports/lookup',limiter(20,900000),async(req,res)=>{const capability=String(req.body.protocol||'').trim();if(!/^[\w-]{43}$/.test(capability))throw fail(404,'Protocolo não encontrado.');const r=await store.get('report',lookup(secret,'report',digest(capability)));if(!r)throw fail(404,'Protocolo não encontrado.');res.json(reportSafe(r));});
  app.use('/api',wrap(auth),limiter(600));authenticatedRoutes=true;
  app.use('/api',wrap(billing.guard));
- billing.privateRoutes({admin});
+ billing.privateRoutes({admin});billing.ownerRoutes();
  badges.installAuthenticated(admin);channels.install(route,admin);
  installBusinessReports({route,store,admin,companyFor,channels});
  installOnboarding({route,store,admin,channels,gateway,platform});installBoards({route,store,secret});
