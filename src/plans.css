@@ -30,3 +30,4 @@
 .ol-plans-skip{background:none;border:0;color:var(--pn-muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .ol-plans-skip:hover{color:var(--pn-text)}
 @media(max-width:900px){.ol-plans-grid,.ol-plans-bottom{grid-template-columns:1fr}.ol-plans-features{grid-template-columns:1fr}.ol-plans-center{padding:26px 0}.ol-plan-price strong{font-size:40px}}
+.ol-plans-error{color:#ff9b8f;font-size:13px;margin:0}

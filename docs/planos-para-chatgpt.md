@@ -43,3 +43,8 @@ Os valores são calculados em `src/plans.tsx` a partir de `BASE = 200` e do desc
    - Na aba "Planos", mostrar o plano atual, a próxima cobrança e um botão para trocar ou cancelar.
 5. **Período de teste e bloqueio**: definir os dias de trial e o que acontece quando a assinatura vence (aviso, modo somente leitura etc.).
 6. **Testes**: os testes ficam em `tests/*.test.js` e rodam com `npm test`. Faltam testes para o webhook e para as regras de acesso por plano.
+
+## Atualização: cobrança real pelo HubCash
+- `server/billing.js`: `POST /api/billing/checkout` (só admin) cria a cobrança no HubCash. O mensal é uma assinatura de R$ 200/mês; o semestral (R$ 1.140) e o anual (R$ 2.160) são pagamento único com Pix, boleto ou cartão em até 12x. `GET /api/billing/subscription` devolve o status. `POST /api/billing/hubcash` recebe o webhook assinado do HubCash e ativa o plano (`paidUntil`).
+- Variáveis no Railway do OLUNE: `HUBCASH_URL`, `HUBCASH_API_KEY` e `HUBCASH_WEBHOOK_SECRET` (gerados no painel do HubCash › Apps). O webhook do app no HubCash é `{OLUNE}/api/billing/hubcash`.
+- Sem essas variáveis, a tela de planos continua em modo demonstração.

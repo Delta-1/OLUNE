@@ -3,6 +3,7 @@
 import React,{useState} from 'react';
 import {ArrowRight,Check,ShieldCheck,Sparkles} from 'lucide-react';
 import {BrandLogo} from './brand';
+import {api} from './api';
 import './plans.css';
 
 export type PlanId='monthly'|'semiannual'|'annual';
@@ -36,9 +37,15 @@ function PlanCards({selected,onSelect}:{selected:PlanId,onSelect:(id:PlanId)=>vo
 }
 
 export function Plans({onDone,onSkip,embedded=false,notify}:{onDone?:(plan:Plan)=>void,onSkip?:()=>void,embedded?:boolean,notify?:(text:string)=>void}){
-  const [selected,setSelected]=useState<PlanId>(savedPlan()||'annual');
+  const [selected,setSelected]=useState<PlanId>(savedPlan()||'annual'),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const plan=PLANS.find(p=>p.id===selected)!;
-  const confirm=()=>{try{localStorage.setItem(KEY,plan.id);}catch{}notify?.('Plano '+plan.name+' selecionado.');onDone?.(plan);};
+  // Com o HubCash configurado, abre o pagamento (Mercado Pago). Sem ele, segue como demonstração.
+  const confirm=async()=>{
+    setBusy(true);setError('');
+    try{const out=await api<{url:string}>('/billing/checkout',{planId:plan.id});try{localStorage.setItem(KEY,plan.id);}catch{}if(out?.url){location.href=out.url;return;}}
+    catch(e){const message=(e as Error).message||'';if(!/não configurad/i.test(message)){setError(message);setBusy(false);return;}}
+    try{localStorage.setItem(KEY,plan.id);}catch{}notify?.('Plano '+plan.name+' selecionado.');setBusy(false);onDone?.(plan);
+  };
   const body=<>
     <div className="ol-plans-intro"><span className="pn-tag">PLANOS OLUNE</span><h1>Escolha o plano da sua empresa.</h1><p>Tudo do OLUNE em todos os planos. Quanto maior o período, menor o valor por mês.</p></div>
     <PlanCards selected={selected} onSelect={setSelected}/>
@@ -46,7 +53,8 @@ export function Plans({onDone,onSkip,embedded=false,notify}:{onDone?:(plan:Plan)
       <ul className="ol-plans-features">{FEATURES.map(f=><li key={f}><Check size={14}/>{f}</li>)}</ul>
       <div className="ol-plans-cta">
         <div><span className="pn-label">PLANO ESCOLHIDO</span><b>{plan.name} · {brl(plan.perMonth)}/mês</b><small>{plan.months===1?'Total: '+brl(plan.total)+' por mês':'Total: '+brl(plan.total)+' por '+plan.months+' meses'}</small></div>
-        <button className="pn-button pn-full" onClick={confirm}>{embedded?'Selecionar plano':'Continuar com o plano '+plan.name}<ArrowRight size={17}/></button>
+        <button className="pn-button pn-full" onClick={confirm} disabled={busy}>{busy?'Abrindo pagamento…':embedded?'Selecionar plano':'Continuar com o plano '+plan.name}<ArrowRight size={17}/></button>
+        {error&&<p className="ol-plans-error" role="alert">{error}</p>}
         {onSkip&&<button type="button" className="ol-plans-skip" onClick={onSkip}>Decidir depois</button>}
       </div>
     </div>

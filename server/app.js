@@ -13,6 +13,7 @@ import {companion} from './ai.js';
 import {createPlatformAI} from './platform.js';
 import {createChannels} from './channels.js';
 import {installPublicApp,installOnboarding,appVersion} from './onboarding.js';
+import {installBilling} from './billing.js';
 import {installBoards} from './boards.js';
 import {installEmployeeFiles} from './employee-files.js';
 import {installWhatsAppInbox} from './whatsapp-inbox.js';
@@ -38,7 +39,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
   }
   if(req.method==='OPTIONS')return res.sendStatus(204);
  }next();});
- app.use(express.json({limit:'8mb'}));
+ app.use(express.json({limit:'8mb',verify:(req,res,buf)=>{if(req.url.startsWith('/api/billing/hubcash'))req.rawBody=buf.toString('utf8');}}));
  let authenticatedRoutes=false;const publicLimit=limiter(240);
  const route=(method,path,...handlers)=>app[method]('/api'+path,...(authenticatedRoutes?[]:[publicLimit]),...handlers.map(h=>h.constructor.name==='AsyncFunction'?wrap(h):h));
  const auth=async(req,res,next)=>{const raw=String(req.get('authorization')||'').replace(/^Bearer /,'');if(!/^[\w-]{43}$/.test(raw))throw fail(401,'Entre na sua conta.');const session=await store.get('session',lookup(secret,'session',digest(raw)));if(!session||Date.parse(session.expiresAt)<Date.now())throw fail(401,'Sua sessão expirou. Entre novamente.');const user=await store.get('user',session.userId,session.companyId);if(!user||!user.active)throw fail(401,'Esta conta não está ativa.');req.user=user;req.sessionId=session.id;next();};
@@ -50,6 +51,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  const issue=async(user,remember)=>{const raw=token(),id=lookup(secret,'session',digest(raw));await store.put('session',user.companyId,{userId:user.id,companyId:user.companyId,expiresAt:new Date(Date.now()+(remember?30*86400000:8*3600000)).toISOString()},id,true);return {token:raw,user:publicUser(user)};};
  route('get','/health',async(req,res)=>{const healthy=await store.health();res.status(healthy?200:503).json({service:'OLUNE',version:appVersion,database:healthy});});
  installPublicApp({route,publicAppUrl});
+ const billing=installBilling({route,store,env:platformEnv||process.env,publicAppUrl});billing.webhook();
  const badges=createBadgeService({route,store,secret,companyFor,forUser:u=>ensureEmployeeCode(store,secret,u),publicAppUrl,serial:attendanceSerial});
  let attendance,welcome;
  const verification=installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor:channels.connectionFor,getAttendance:()=>attendance});
@@ -64,6 +66,7 @@ export function createApp({store,secret,gateway=null,ai=companion,whatsappAI,wel
  route('post','/auth/login',authLimit,async(req,res)=>{const email=String(req.body.email||'').trim().toLowerCase(),u=await store.get('user',lookup(secret,'email',email));if(!await verifyPassword(req.body.password,u?.passwordHash)||!u?.active)throw fail(401,'E-mail ou senha incorretos.');res.json(await issue(await ensureEmployeeCode(store,secret,u),req.body.remember===true));});
  route('post','/reports/lookup',limiter(20,900000),async(req,res)=>{const capability=String(req.body.protocol||'').trim();if(!/^[\w-]{43}$/.test(capability))throw fail(404,'Protocolo não encontrado.');const r=await store.get('report',lookup(secret,'report',digest(capability)));if(!r)throw fail(404,'Protocolo não encontrado.');res.json(reportSafe(r));});
  app.use('/api',wrap(auth),limiter(600));authenticatedRoutes=true;
+ billing.privateRoutes({admin});
  badges.installAuthenticated(admin);channels.install(route,admin);
  installBusinessReports({route,store,admin,companyFor,channels});
  installOnboarding({route,store,admin,channels,gateway,platform});installBoards({route,store,secret});
