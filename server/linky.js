@@ -11,7 +11,7 @@ import * as oidc from 'openid-client';
 import {createCipheriv,createDecipheriv,createHash,randomBytes} from 'node:crypto';
 import {fail,digest,lookup,token} from './security.js';
 
-export const LINKY_ISSUER='https://linky-delta1s-projects.vercel.app/api/identity';
+export const LINKY_ISSUER='https://linky.uwy.app/api/identity';
 const COOKIE='olune_linky',COOKIE_PATH='/api/auth/linky',TEN_MINUTES=600e3,TICKET_MINUTES=2;
 const CLIENT_ID=/^uwy_olune_[A-Za-z0-9_-]{8,64}$/;
 
