@@ -176,7 +176,7 @@ export function installAttendance({route,store,secret,admin,companyFor,gateway,p
   return {mine,punch,saveDocument};
 }
 
-export function installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor=async u=>u.companyId,getAttendance}) {
+export function installPublicAttendance({route,store,secret,gateway,limiter,companyFor,connectionFor=async u=>u.companyId,getAttendance,identity=null}) {
   route('post','/public/access',limiter(30,60000),async(req,res)=>{
     const kind=req.body.kind==='totem'?'totem':'invite',c=await resolveAccess(store,secret,req.body.token,kind);
     res.json({name:c.name,timezone:companySettings(c).timezone,department:c.invitedDepartment||null,attendanceMethod:c.attendanceMethod||'code'});
@@ -212,10 +212,12 @@ export function installPublicAttendance({route,store,secret,gateway,limiter,comp
   });
   route('post','/auth/password/request',limiter(5,15*60000),async(req,res)=>{
     const email=String(req.body.email||'').trim().toLowerCase(),u=await store.get('user',lookup(secret,'email',email));
+    if(identity){await identity.requestReset(email);return res.json({method:'email',message:'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha da sua conta. A nova senha também valerá no LINKY.'});}
     if(u?.active)await sendOTP('reset',u);
     res.json({ok:true,message:'Se o e-mail tiver um WhatsApp cadastrado e a empresa estiver conectada, enviaremos um código. Confira seu WhatsApp ou procure o RH.'});
   });
   route('post','/auth/password/reset',limiter(10,15*60000),async(req,res)=>{
+    if(identity)throw fail(400,'Use o link de recuperação enviado ao seu e-mail.');
     const passwordHash=await hashPassword(req.body.password),email=String(req.body.email||'').trim().toLowerCase();
     await consume('reset',email,req.body.code,async u=>{u.passwordHash=passwordHash;await store.put('user',u.companyId,u,u.id);for(const s of await store.list('session',u.companyId))if(s.userId===u.id)await store.remove('session',s.id,u.companyId);});res.json({ok:true});
   });

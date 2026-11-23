@@ -48,9 +48,9 @@ export function licenseState(b,now=Date.now()){
     autoRenew:b?.autoRenew||null,autoAmount:b?.autoAmount||null};
 }
 
-export function installBilling({route,store,env=process.env,fetchImpl=globalThis.fetch,publicAppUrl,resolveAccess,secret,now=()=>Date.now()}){
+export function installBilling({route,store,env=process.env,fetchImpl=globalThis.fetch,publicAppUrl,resolveAccess,secret,now=()=>Date.now(),identityRegistry=null}){
   const read=companyId=>store.get('billing',recordId(companyId),companyId);
-  const write=(companyId,value)=>store.put('billing',companyId,value,recordId(companyId));
+  const write=async(companyId,value)=>{const previous=identityRegistry?await read(companyId):null;if(identityRegistry&&previous&&(previous.paidUntil!==value.paidUntil||previous.trialEndsAt!==value.trialEndsAt))await identityRegistry.syncBilling(companyId,value);return store.put('billing',companyId,value,recordId(companyId));};
 
   // Primeiro acesso depois desta versão: começa o teste de 7 dias (vale também para empresas que já existiam).
   async function ensure(companyId){
@@ -58,7 +58,7 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
     const t=new Date(now()).toISOString();
     return write(companyId,{...(b||{}),trialStartedAt:t,trialEndsAt:new Date(now()+TRIAL_DAYS*DAY).toISOString(),activationSeen:false});
   }
-  const license=async companyId=>licenseState(await ensure(companyId),now());
+  const license=async companyId=>{const local=await ensure(companyId),record=identityRegistry?await identityRegistry.license(companyId,local):local;return {...licenseState(record,now()),...(record.centralPlanName?{planName:record.centralPlanName}:{}),...(record.centralBlocked?{phase:'blocked',blocked:true,notice:'blocked'}:{})};};
 
   async function hubcash(path,body,idempotencyKey){
     const cfg=hubcashConfig(env);if(!cfg)throw fail(503,'Pagamentos ainda não configurados.');
@@ -85,7 +85,7 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
         if(seen.includes(key))return res.json({ok:true});
         const months=isSub?1:PLANS[current.plan].months;
         // O período pago começa depois do que ainda resta (teste ou licença atual), sem perder dias.
-        next.status='active';next.plan=isSub?'monthly':current.plan;next.paidKeys=[...seen,key].slice(-36);next.paidUntil=addMonths(maxIso(t,current.paidUntil,current.trialEndsAt),months);
+        const effective=await license(companyId);next.status='active';next.plan=isSub?'monthly':current.plan;next.paidKeys=[...seen,key].slice(-36);next.paidUntil=addMonths(maxIso(t,effective.paidUntil,effective.trialEndsAt),months);
         if(isSub){next.autoRenew='active';next.pendingAuto=false;}
       }
       else if(event.type==='subscription.activated'){next.autoRenew='active';next.pendingAuto=false;if(next.status==='pending')next.status=current.paidUntil?'active':'pending';}
@@ -146,8 +146,9 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
       const companies=await store.list('company',undefined,{limit:5000});
       const rows=await Promise.all(companies.map(async c=>{
         const b=await read(c.id),users=await store.list('user',c.id,{limit:5000});
+        const effective=b?await license(c.id):licenseState(b,now());
         const admins=users.filter(u=>u.role==='admin'&&u.active!==false).slice(0,3).map(u=>({name:u.name,email:u.email}));
-        return {companyId:c.id,name:c.name,createdAt:c.createdAt||null,people:users.filter(u=>u.active!==false).length,admins,started:!!(b?.trialEndsAt||b?.paidUntil),...licenseState(b,now()),...(b?.trialEndsAt||b?.paidUntil?{}:{phase:'not_started',blocked:false,notice:null}),history:(b?.history||[]).slice(-5)};
+        return {companyId:c.id,name:c.name,createdAt:c.createdAt||null,people:users.filter(u=>u.active!==false).length,admins,started:!!(b?.trialEndsAt||b?.paidUntil),...effective,...(b?.trialEndsAt||b?.paidUntil?{}:{phase:'not_started',blocked:false,notice:null}),history:(b?.history||[]).slice(-5)};
       }));
       res.json({data:rows.sort((a,b)=>String(a.expiresAt||'').localeCompare(String(b.expiresAt||'')))});
     });
@@ -157,7 +158,7 @@ export function installBilling({route,store,env=process.env,fetchImpl=globalThis
       let next={...b};
       if(action==='extend'){
         const days=Math.floor(Number(req.body?.days));if(!(days>=1&&days<=3650))throw fail(400,'Escolha de 1 a 3650 dias.');
-        next.paidUntil=new Date(Date.parse(maxIso(t,b.paidUntil,b.trialEndsAt))+days*DAY).toISOString();
+        const effective=await license(companyId);next.paidUntil=new Date(Date.parse(maxIso(t,effective.paidUntil,effective.trialEndsAt))+days*DAY).toISOString();
         if(!PLANS[b.plan])next.plan='courtesy';next.status='active';entry.days=days;
       }else if(action==='block'){
         const past=new Date(now()-(GRACE_DAYS+1)*DAY).toISOString();next.paidUntil=b.paidUntil?past:null;next.trialEndsAt=past;

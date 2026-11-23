@@ -43,7 +43,7 @@ export function installLinky({route,store,secret,issue,env=process.env,client}){
  const cookie=(res,value,maxAge)=>res.cookie(COOKIE,value,{httpOnly:true,secure,sameSite:'lax',path:COOKIE_PATH,maxAge});
  const back=(res,hash)=>res.set('Cache-Control','no-store').set('Referrer-Policy','no-referrer').redirect(303,origin+'/#'+hash);
 
- route('get','/auth/linky/status',async(req,res)=>res.json({enabled:!!linky}));
+ route('get','/auth/linky/status',async(req,res)=>res.json({enabled:!!linky,native:env.LINKY_NATIVE_AUTH==='true'}));
  route('get','/auth/linky/start',async(req,res)=>{
   if(!linky)return back(res,'linky_error=indisponivel');
   // O cookie do pedido precisa nascer no mesmo domínio do callback.

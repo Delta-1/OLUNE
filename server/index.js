@@ -2,6 +2,8 @@ import {createClient} from '@supabase/supabase-js';
 import {fileURLToPath} from 'node:url';
 import {SupabaseStore} from './store.js';
 import {createApp} from './app.js';
+import {createIdentity} from './identity.js';
+import {createLinkyRegistry} from './linky-registry.js';
 import {WhatsAppGateway} from './whatsapp.js';
 import {resetAccountsOnce,resetProjectDataOnce} from './reset-accounts.js';
 // Preserve the existing encryption secret when renaming an installed service.
@@ -19,6 +21,7 @@ if(projectReset){
  // Verify again after the previous deployment has had time to close sockets.
  setTimeout(()=>store.projectDataCounts().then(counts=>console.log('OLUNE: verificação após limpeza.',JSON.stringify(counts))).catch(()=>console.error('OLUNE: verificação após limpeza indisponível.')),30000).unref();
 }
-const gateway=new WhatsAppGateway(store,secret),app=createApp({store,secret,gateway,staticPath:fileURLToPath(new URL('../dist',import.meta.url))});
+const identity=createIdentity({db}),identityRegistry=identity?createLinkyRegistry({db,store,clientId:process.env.LINKY_OLUNE_CLIENT_ID}):null;
+const gateway=new WhatsAppGateway(store,secret),app=createApp({store,secret,gateway,identity,identityRegistry,staticPath:fileURLToPath(new URL('../dist',import.meta.url))});
 const server=app.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>{console.log('OLUNE pronto.');app.locals.whatsappHub.wellbeing.start();app.locals.welcome.start();gateway.restore().catch(()=>console.error('Reconexão do WhatsApp pendente.'));});
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,async()=>{app.locals.whatsappHub.wellbeing.close();app.locals.welcome.close();await gateway.close();server.close(()=>process.exit(0));setTimeout(()=>process.exit(0),5000).unref();});
