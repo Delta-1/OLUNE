@@ -13,7 +13,9 @@ export function createIdentity({env=process.env,db}={}){
  const fresh=()=>createClient(url,key,opts);
  const admin=db||createClient(url,env.SUPABASE_SERVICE_ROLE_KEY,opts);
  const check=error=>{if(!error)return;if(error.status>=500||error.name==='AuthRetryableFetchError')throw fail(503,'Não foi possível conectar sua conta. Tente novamente.');if(error.code==='email_not_confirmed')throw fail(403,'Confirme seu e-mail para entrar.');throw invalid();};
- async function signIn(email,password){const {data,error}=await fresh().auth.signInWithPassword({email,password});check(error);if(!data.user?.email_confirmed_at)throw fail(403,'Confirme seu e-mail para entrar.');return identity(data.user);}
+ // Bloqueio feito no LINKY só para o OLUNE (linky_app_blocks). Na dúvida, não libera.
+ async function notBlocked(sub){const {data,error}=await admin.rpc('linky_is_blocked',{p_slug:'olune',p_user:sub});if(error)throw fail(503,'Não foi possível conectar sua conta. Tente novamente.');if(data===true)throw fail(403,'Seu acesso ao OLUNE está bloqueado. Fale com o responsável pela sua empresa.');}
+ async function signIn(email,password){const {data,error}=await fresh().auth.signInWithPassword({email,password});check(error);if(!data.user?.email_confirmed_at)throw fail(403,'Confirme seu e-mail para entrar.');await notBlocked(data.user.id);return identity(data.user);}
  return {
   signIn,
   async register(email,password,name){
@@ -31,7 +33,7 @@ export function createIdentity({env=process.env,db}={}){
   },
   async changePassword(user,currentPassword,password){const who=await signIn(user.email,currentPassword);if(who.sub!==user.linkySub)throw invalid();const {error}=await admin.auth.admin.updateUserById(who.sub,{password});if(error)throw fail(400,'Não foi possível atualizar a senha da conta.');},
   async requestReset(email){const {error}=await fresh().auth.resetPasswordForEmail(email,{redirectTo:(env.LINKY_SITE_URL||'https://linky.uwy.app')+'/auth/callback?next=%2Fredefinir-senha'});if(error)throw fail(503,'Não foi possível enviar a recuperação. Tente novamente.');},
-  async assertUser(user){if(!user.linkySub)throw fail(401,'Entre novamente para unificar sua conta.');const {data,error}=await admin.auth.admin.getUserById(user.linkySub);if(error||!data.user||data.user.email!==user.email||Date.parse(data.user.banned_until||'')>Date.now())throw fail(401,'Sua conta não está disponível. Entre novamente.');},
+  async assertUser(user){if(!user.linkySub)throw fail(401,'Entre novamente para unificar sua conta.');const {data,error}=await admin.auth.admin.getUserById(user.linkySub);if(error||!data.user||data.user.email!==user.email||Date.parse(data.user.banned_until||'')>Date.now())throw fail(401,'Sua conta não está disponível. Entre novamente.');await notBlocked(user.linkySub);},
  };
 }
 export function assertIdentity(user,who){
