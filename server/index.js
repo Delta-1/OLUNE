@@ -4,6 +4,7 @@ import {SupabaseStore} from './store.js';
 import {createApp} from './app.js';
 import {createIdentity} from './identity.js';
 import {createLinkyRegistry} from './linky-registry.js';
+import {createDeletionWorker} from './linky-deletions.js';
 import {WhatsAppGateway} from './whatsapp.js';
 import {resetAccountsOnce,resetProjectDataOnce} from './reset-accounts.js';
 // Preserve the existing encryption secret when renaming an installed service.
@@ -23,5 +24,5 @@ if(projectReset){
 }
 const identity=createIdentity({db}),identityRegistry=identity?createLinkyRegistry({db,store,clientId:process.env.LINKY_OLUNE_CLIENT_ID}):null;
 const gateway=new WhatsAppGateway(store,secret),app=createApp({store,secret,gateway,identity,identityRegistry,staticPath:fileURLToPath(new URL('../dist',import.meta.url))});
-const server=app.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>{console.log('OLUNE pronto.');app.locals.whatsappHub.wellbeing.start();app.locals.welcome.start();gateway.restore().catch(()=>console.error('Reconexão do WhatsApp pendente.'));});
+const server=app.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>{console.log('OLUNE pronto.');app.locals.whatsappHub.wellbeing.start();app.locals.welcome.start();if(identity&&process.env.LINKY_OLUNE_CLIENT_ID)createDeletionWorker({db,store,clientId:process.env.LINKY_OLUNE_CLIENT_ID}).start();gateway.restore().catch(()=>console.error('Reconexão do WhatsApp pendente.'));});
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,async()=>{app.locals.whatsappHub.wellbeing.close();app.locals.welcome.close();await gateway.close();server.close(()=>process.exit(0));setTimeout(()=>process.exit(0),5000).unref();});

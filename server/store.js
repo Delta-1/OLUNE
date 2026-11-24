@@ -13,6 +13,10 @@ export class SupabaseStore {
  async put(kind,tenant,value,id=value.id||'moodcorp:'+randomUUID(),insert=false){const row={id,company_id:this.root,kind:'moodcorp.v1.'+kind,data:{tenant,...(value.owner?{owner:value.owner}:{}),value:this.crypt.seal({...value,id})},updated_at:new Date().toISOString()};const q=this.db.from('startsys_records');const {error}=insert?await q.insert(row):await q.upsert(row,{onConflict:'id'});if(error)throw fail(error.code==='23505'?409:503,error.code==='23505'?'Este registro já existe.':'Não foi possível salvar. Tente novamente.');return {...value,id};}
  async remove(kind,id,tenant){let q=this.db.from('startsys_records').delete().eq('company_id',this.root).eq('kind','moodcorp.v1.'+kind).eq('id',id);if(tenant)q=q.eq('data->>tenant',tenant);const {error}=await q;if(error)throw fail(503,'Não foi possível remover o registro.');}
  async health(){const {error}=await this.query('company').limit(1);return !error;}
+ // Exclusão pedida pelo LINKY: tudo de uma empresa, ou só o que pertence a uma pessoa.
+ async removeTenant(tenant){if(!this.root||!tenant)throw fail(503,'Armazenamento do OLUNE não inicializado.');const {error,count}=await this.db.from('startsys_records').delete({count:'exact'}).eq('company_id',this.root).like('kind','moodcorp.v1.%').eq('data->>tenant',tenant);if(error)throw fail(503,'Não foi possível apagar a empresa.');return count||0;}
+ async removeOwned(tenant,owner){if(!this.root||!tenant||!owner)throw fail(503,'Armazenamento do OLUNE não inicializado.');const {error,count}=await this.db.from('startsys_records').delete({count:'exact'}).eq('company_id',this.root).like('kind','moodcorp.v1.%').eq('data->>tenant',tenant).eq('data->>owner',owner);if(error)throw fail(503,'Não foi possível apagar os dados.');return count||0;}
+
  async projectDataCounts(){
   const kinds=[null,'user','company','session'];
   const counts=await Promise.all(kinds.map(async kind=>{let q=this.db.from('startsys_records').select('id',{count:'exact',head:true}).eq('company_id',this.root);q=kind?q.eq('kind','moodcorp.v1.'+kind):q.like('kind','moodcorp.v1.%');const {count,error}=await q;if(error||!Number.isSafeInteger(count))throw fail(503,'Não foi possível verificar a limpeza.');return count;}));
@@ -43,4 +47,6 @@ export class MemoryStore {
  async list(kind,tenant,{owner,limit}={}){limit??=kind==='user'?300000:10000;return [...this.rows.values()].filter(r=>r.kind===kind&&(!tenant||r.tenant===tenant)&&(!owner||r.value.owner===owner)).map(r=>structuredClone(r.value)).slice(-limit).reverse();}
  async put(kind,tenant,value,id=value.id||'moodcorp:'+randomUUID(),insert=false){if(insert&&this.rows.has(kind+':'+id))throw fail(409,'Este registro já existe.');this.rows.set(kind+':'+id,{kind,tenant,value:structuredClone({...value,id})});return {...value,id};}
  async remove(kind,id,tenant){if(await this.get(kind,id,tenant))this.rows.delete(kind+':'+id);}
+ async removeTenant(tenant){let n=0;for(const [k,r] of this.rows)if(r.tenant===tenant){this.rows.delete(k);n++;}return n;}
+ async removeOwned(tenant,owner){let n=0;for(const [k,r] of this.rows)if(r.tenant===tenant&&r.value.owner===owner){this.rows.delete(k);n++;}return n;}
 }
