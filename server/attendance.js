@@ -71,8 +71,13 @@ export function installAttendance({route,store,secret,admin,companyFor,gateway,p
     const ongoing=recent&&!['exit','presence'].includes(recent.event)&&Date.now()-Date.parse(recent.at)<20*3600000;
     const shiftDay=ongoing?recent.day:today;
     const current=all.filter(e=>e.day===shiftDay), userWithCode=await forUser(user);
-    return {user:publicUser(userWithCode),today,shiftDay,entries:current,nextEvent:(['qr','checklist'].includes(methodFor(userWithCode,c))||c.attendanceMode==='presence')?(current.length?null:'presence'):(events[current.length]||null),
-      history:summarize(all,c,'1900-01-01','2999-12-31'),settings:companySettings(c),method:methodFor(userWithCode,c),presenceOnly:['qr','checklist'].includes(methodFor(userWithCode,c))||c.attendanceMode==='presence'};
+    const method=methodFor(userWithCode,c);
+    const presenceOnly=current.length
+      ? current.some(entry=>entry.event==='presence')
+      : method==='checklist'||c.attendanceMode==='presence';
+    const nextEvent=presenceOnly?(current.length?null:'presence'):(events[current.length]||null);
+    return {user:publicUser(userWithCode),today,shiftDay,entries:current,nextEvent,
+      history:summarize(all,c,'1900-01-01','2999-12-31'),settings:companySettings(c),method,presenceOnly};
   };
   const punch=async(user,body,source='online')=>serial('punch:'+user.id,async()=>{
     const requestId=text(body.requestId,16,100);

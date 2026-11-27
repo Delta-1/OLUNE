@@ -26,6 +26,6 @@ test('sessões anteriores são preservadas no mesmo tipo de armazenamento e logo
  const local=new Map(),tab=new Map([['moodcorp.session','a'.repeat(43)]]);
  const storage=map=>({getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)});
  const session=createSessionState({localStorage:storage(local),sessionStorage:storage(tab)});
- assert.equal(session.get(),'a'.repeat(43));assert.equal(tab.get('oluni.session'),'a'.repeat(43));assert.equal(tab.has('moodcorp.session'),false);assert.equal(local.size,0);
+ assert.equal(session.get(),'a'.repeat(43));assert.equal(tab.get('olune.session'),'a'.repeat(43));assert.equal(tab.has('moodcorp.session'),false);assert.equal(local.size,0);
  session.set('');assert.equal(tab.size,0);
 });

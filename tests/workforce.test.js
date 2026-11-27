@@ -43,6 +43,8 @@ test('convite carrega setor assinado, impede troca no cadastro e respeita isolam
 test('QR impresso exige identidade, localização recente, método do RH e registra uma presença',async t=>{
  const f=await fixture(t);await f.config(f.employee.user,{attendanceMethod:'qr'});
  const batch=await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:3}]},f.admin.token);assert.equal(batch.status,200);assert.equal(batch.body.total,3);assert.equal(batch.body.labels[0].code,'0001');const qrToken=decodeLabel(batch.body.labels[0].image);
+ const settings=(await f.req('/admin/attendance/settings',undefined,f.admin.token)).body;
+ assert.equal((await f.req('/admin/attendance/settings',{...settings,attendanceMode:'presence'},f.admin.token)).status,200);
  const body={event:'presence',requestId:'qr-request-identity-0001',qrToken,location:gps()};
  assert.equal((await f.req('/public/totem/punch',{token:f.access.totem,code:'0001',requestId:'totem-no-bypass-001'})).status,403);
  assert.equal((await f.req('/attendance/punch',{...body,location:undefined},f.employee.token)).status,400);
@@ -53,13 +55,33 @@ test('QR impresso exige identidade, localização recente, método do RH e regis
  assert.equal((await f.req('/attendance/punch',body,f.employee.token)).body.entry.id,out.body.entry.id);
  const report=(await f.req('/admin/attendance',undefined,f.admin.token)).body;assert.equal(report.records[0].entries[0].method,'qr');
 });
+test('QR registra entrada, intervalo e saída quando a empresa usa jornada',async t=>{
+ const f=await fixture(t);
+ await f.config(f.employee.user,{attendanceMethod:'qr'});
+ const batch=await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:1}]},f.admin.token);
+ const qrToken=decodeLabel(batch.body.labels[0].image);
+ const events=['entry','break_start','break_end','exit'];
+ for(const [index,event] of events.entries()){
+  const out=await f.req('/attendance/punch',{event,requestId:'qr-journey-request-'+index,qrToken,location:gps()},f.employee.token);
+  assert.equal(out.status,201);
+  assert.equal(out.body.entry.event,event);
+  assert.equal(out.body.nextEvent,events[index+1]??null);
+  const saved=out.body.entry;
+  saved.at=new Date(Date.now()-(events.length-index)*60000).toISOString();
+  await f.store.put('clock-event',f.employee.user.companyId,saved,saved.id);
+ }
+ const report=(await f.req('/admin/attendance',undefined,f.admin.token)).body.records[0];
+ assert.deepEqual(report.entries.map(entry=>entry.event),events);
+ assert.equal(report.complete,true);
+ assert.equal(report.presence,false);
+});
 test('impressão limita quantidade, restringe empresa e revogação invalida QR antigo',async t=>{
  const f=await fixture(t),qr=decodeLabel((await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:1}]},f.admin.token)).body.labels[0].image);
  assert.equal((await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:0}]},f.admin.token)).status,400);
  assert.equal((await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:1}]},f.employee.token)).status,403);
  const b=await f.company('isolated@example.test');assert.equal((await f.req('/admin/qr/labels',{items:[{id:f.employee.user.id,quantity:1}]},b.token)).status,400);
  await f.config(f.employee.user,{attendanceMethod:'qr'});await f.req('/admin/qr/revoke',{},f.admin.token);
- assert.equal((await f.req('/attendance/punch',{event:'presence',requestId:'old-qr-after-revoke',qrToken:qr,location:gps()},f.employee.token)).status,403);
+ assert.equal((await f.req('/attendance/punch',{event:'entry',requestId:'old-qr-after-revoke',qrToken:qr,location:gps()},f.employee.token)).status,403);
 });
 test('ponto por foto exige arquivo privado do funcionário e não permite reaproveitamento',async t=>{
  const f=await fixture(t);await f.config(f.employee.user,{attendanceMethod:'photo'});
